@@ -1,0 +1,217 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Application: URE Sorocaba Equipment Loan System (Empréstimos URE)
+// Project ID: emprestimo-ure-d2382
+//
+// Collections:
+//
+// 1. /equipamentos/{equipamentoId}
+//    - patrimony / patrimonio: string (1..50 chars)
+//    - brand / marca: optional string (0..50 chars)
+//    - model / modelo: optional string (0..100 chars)
+//    - serialNumber / numeroSerie: optional string (0..100 chars)
+//    - status: string (1..50 chars, e.g., 'disponivel', 'emprestado', 'manutencao')
+//    - currentBorrower / responsavel: optional string (0..100 chars)
+//    - currentLoanId / idEmprestimo: optional string (0..100 chars)
+//    - notes / observacoes: optional string (0..2000 chars)
+//    - createdAt / updatedAt: optional timestamp or string
+//
+// 2. /emprestimos/{emprestimoId}
+//    - id: optional string (0..100 chars)
+//    - borrowerName / nomeSolicitante: string (1..150 chars)
+//    - borrowerEmail / email: optional string (0..100 chars)
+//    - borrowerSector / setor: optional string (0..100 chars)
+//    - borrowerPhone / telefone: optional string (0..50 chars)
+//    - equipmentIds / equipamentosIds: list of strings (max 50 items)
+//    - loanDate / dataEmprestimo: optional timestamp or string
+//    - expectedReturnDate / dataPrevisaoDevolucao: optional timestamp or string
+//    - returnDate / dataDevolucao: optional timestamp or string
+//    - status: string (1..50 chars, e.g., 'ativo', 'finalizado', 'atrasado')
+//    - notes / observacoes: optional string (0..2000 chars)
+//    - createdAt / updatedAt: optional timestamp or string
+//
+// 3. /config/{configId}
+//    - System settings, metadata, counters or reference values
+//
+// User Roles (by Firebase Auth Token Email):
+// - Superadmin: vinicius@ure.local (full access to read, create, update, delete across all collections)
+// - Admin: setec@ure.local (read/create/update all, delete equipments, CANNOT delete loans)
+// - Operator: ure.sorocaba@ure.local (read equipments/loans, create loans, update loans/equipments on return/borrow, NO deletes, NO equipment creation)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if client is authenticated with Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    // Get lowercased authenticated user email
+    function userEmail() {
+      return request.auth.token.email;
+    }
+
+    // Superadmin: Full administrative privileges
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        userEmail() == 'vinicius@ure.local' ||
+        (request.auth.token.keys().hasAny(['superadmin']) && request.auth.token.superadmin == true)
+      );
+    }
+
+    // Setec Admin: Can manage equipments, create/update loans, but cannot delete loans
+    function isSetecAdmin() {
+      return isAuthenticated() && (
+        userEmail() == 'setec@ure.local' ||
+        (request.auth.token.keys().hasAny(['admin']) && request.auth.token.admin == true)
+      );
+    }
+
+    // Operator: Lending and returning, reading equipment/loans, creating loans
+    function isOperator() {
+      return isAuthenticated() && (
+        userEmail() == 'ure.sorocaba@ure.local' ||
+        (request.auth.token.keys().hasAny(['operator']) && request.auth.token.operator == true)
+      );
+    }
+
+    // Combined Admin / SuperAdmin helper
+    function isAdminOrSuper() {
+      return isSuperAdmin() || isSetecAdmin();
+    }
+
+    // Any recognized system role
+    function isAuthorizedUser() {
+      return isSuperAdmin() || isSetecAdmin() || isOperator();
+    }
+
+    // Generic string length validator (optional field)
+    function isValidOptionalString(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    // Generic list validator (optional field)
+    function isValidOptionalList(data, field, maxItems) {
+      return !(field in data) || (data[field] is list && data[field].size() <= maxItems);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    // Validator for 'equipamentos'
+    function isValidEquipment(data) {
+      return data.keys().size() <= 30 &&
+        // Status check
+        (!( 'status' in data ) || (data.status is string && data.status.size() > 0 && data.status.size() <= 50)) &&
+        // Identification fields
+        isValidOptionalString(data, 'patrimony', 50) &&
+        isValidOptionalString(data, 'patrimonio', 50) &&
+        isValidOptionalString(data, 'brand', 50) &&
+        isValidOptionalString(data, 'marca', 50) &&
+        isValidOptionalString(data, 'model', 100) &&
+        isValidOptionalString(data, 'modelo', 100) &&
+        isValidOptionalString(data, 'serialNumber', 100) &&
+        isValidOptionalString(data, 'numeroSerie', 100) &&
+        // Borrowing tracking fields
+        isValidOptionalString(data, 'currentBorrower', 150) &&
+        isValidOptionalString(data, 'responsavel', 150) &&
+        isValidOptionalString(data, 'currentLoanId', 100) &&
+        isValidOptionalString(data, 'idEmprestimo', 100) &&
+        isValidOptionalString(data, 'notes', 2000) &&
+        isValidOptionalString(data, 'observacoes', 2000);
+    }
+
+    // Validator for 'emprestimos'
+    function isValidEmprestimo(data) {
+      return data.keys().size() <= 35 &&
+        // Borrower identity bounds
+        isValidOptionalString(data, 'borrowerName', 150) &&
+        isValidOptionalString(data, 'nomeSolicitante', 150) &&
+        isValidOptionalString(data, 'borrowerEmail', 100) &&
+        isValidOptionalString(data, 'email', 100) &&
+        isValidOptionalString(data, 'borrowerSector', 100) &&
+        isValidOptionalString(data, 'setor', 100) &&
+        isValidOptionalString(data, 'borrowerPhone', 50) &&
+        isValidOptionalString(data, 'telefone', 50) &&
+        // Status bounds
+        (!( 'status' in data ) || (data.status is string && data.status.size() > 0 && data.status.size() <= 50)) &&
+        // Equipment references
+        isValidOptionalList(data, 'equipmentIds', 50) &&
+        isValidOptionalList(data, 'equipamentosIds', 50) &&
+        isValidOptionalList(data, 'equipments', 50) &&
+        // Notes bounds
+        isValidOptionalString(data, 'notes', 2000) &&
+        isValidOptionalString(data, 'observacoes', 2000);
+    }
+
+    // Validator for 'config'
+    function isValidConfig(data) {
+      return data.keys().size() <= 50;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. Equipamentos Collection
+    match /equipamentos/{equipamentoId} {
+      // Superadmin, Setec Admin and Operator can read equipment list
+      allow read: if isAuthorizedUser();
+
+      // Only Superadmin and Setec Admin can register new equipment
+      allow create: if isAdminOrSuper() && isValidEquipment(request.resource.data);
+
+      // Superadmin, Setec Admin, and Operator can update equipment (e.g. status changes during loan/return)
+      allow update: if isAuthorizedUser() && isValidEquipment(request.resource.data);
+
+      // Superadmin and Setec Admin can delete equipment; Operator is strictly forbidden
+      allow delete: if isAdminOrSuper();
+    }
+
+    // 2. Emprestimos Collection
+    match /emprestimos/{emprestimoId} {
+      // All authorized roles can read loan history & active loans
+      allow read: if isAuthorizedUser();
+
+      // All authorized roles can create loans (Operator, Setec Admin, Superadmin)
+      allow create: if isAuthorizedUser() && isValidEmprestimo(request.resource.data);
+
+      // All authorized roles can update loan documents (e.g. marking as returned, notes, dates)
+      allow update: if isAuthorizedUser() && isValidEmprestimo(request.resource.data);
+
+      // CRITICAL AUDIT RULE: Only Superadmin can delete loan documents.
+      // Setec Admin and Operator CANNOT delete loans under any circumstances.
+      allow delete: if isSuperAdmin();
+    }
+
+    // 3. Config Collection
+    match /config/{configId} {
+      // Authorized staff can read system configs
+      allow read: if isAuthorizedUser();
+
+      // Only administrators can create or update configs
+      allow create, update: if isAdminOrSuper() && isValidConfig(request.resource.data);
+
+      // Only Superadmin can delete configurations
+      allow delete: if isSuperAdmin();
+    }
+
+    // ===============================================================
+    // Default Deny Rule (Catch-all)
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

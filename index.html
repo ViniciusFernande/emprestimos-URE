@@ -12,6 +12,54 @@
  <link rel="stylesheet" href="css/print.css">
 </head>
 <body>
+  <!-- TELA DE LOGIN DO SISTEMA -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-wrap">
+          <img src="img/logo_ure.png" alt="Logo URE Sorocaba" class="login-logo">
+        </div>
+        <h1 class="login-title">URE SOROCABA</h1>
+        <p class="login-subtitle">Controle de Empréstimos de Equipamentos</p>
+      </div>
+
+      <form id="formLogin" class="login-form" onsubmit="App.handleLogin(event)" autocomplete="on">
+        <div class="login-error-msg" id="loginErrorMsg" style="display: none;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="loginErrorText">Usuário ou senha incorretos.</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="loginUsername">Usuário ou E-mail</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-user input-icon"></i>
+            <input type="text" id="loginUsername" class="form-input" placeholder="Vinicius, Setec ou URE Sorocaba" required autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" for="loginPassword">Senha de Acesso</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="loginPassword" class="form-input" placeholder="Digite sua senha" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-pwd" id="btnTogglePwd" onclick="App.togglePasswordVisibility()" title="Mostrar/ocultar senha">
+              <i class="fa-regular fa-eye" id="iconTogglePwd"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login-submit" id="btnLoginSubmit">
+          <span id="btnLoginText"><i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema</span>
+          <span id="btnLoginSpinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Entrando...</span>
+        </button>
+
+        <div class="login-footer-info">
+          <i class="fa-solid fa-shield-halved"></i> Autenticação Segura • Firebase Cloud
+        </div>
+      </form>
+    </div>
+  </div>
+
 
  <!-- Cabeçalho Superior -->
  <header class="app-header">
@@ -28,11 +76,24 @@
       </div>
  </div>
 
- <div class="header-right">
- <div class="system-clock" id="systemClock">
- <i class="fa-regular fa-clock"></i> Carregando...
- </div>
- </div>
+   <div class="header-right">
+    <div class="system-clock" id="systemClock">
+      <i class="fa-regular fa-clock"></i> Carregando...
+    </div>
+    <div class="header-user-profile" id="headerUserProfile" style="display: none;">
+      <div class="user-avatar" id="headerUserAvatar">
+        <i class="fa-solid fa-user-shield"></i>
+      </div>
+      <div class="user-info">
+        <div class="user-name" id="headerUserName">Usuário</div>
+        <div class="user-badge" id="headerUserBadge">Perfil</div>
+      </div>
+      <button class="btn-logout" id="btnLogout" onclick="App.logout()" title="Sair do sistema">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Sair</span>
+      </button>
+    </div>
+  </div>
  </header>
 
  <!-- Container Geral -->
@@ -343,7 +404,7 @@
  <h2 style="font-size: 18px; font-weight: 700;">Todos os Equipamentos Cadastrados</h2>
  <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;" id="equipTableCount">Carregando...</div>
  </div>
- <button class="btn-primary" onclick="App.openNewEquipModal('Lenovo')">
+ <button class="btn-primary" id="btnCadastrarEquipamento" onclick="App.openNewEquipModal(\'Lenovo\')">
  <i class="fa-solid fa-plus"></i> Cadastrar Equipamento
  </button>
  </div>
@@ -1310,7 +1371,12 @@
  </div>
 
  <!-- Scripts -->
- <script src="js/storage.js"></script>
+   <!-- Firebase SDK v10 Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/storage.js"></script>
  <script src="js/app.js"></script>
 </body>
 </html>

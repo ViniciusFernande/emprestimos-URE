@@ -67,7 +67,212 @@ const App = {
   activeView: 'dashboard',
   selectedMultiEquipIds: new Set(),
 
+  // ==========================================
+  // AUTENTICAÇÃO E CONTROLE DE ACESSO (RBAC)
+  // ==========================================
+  currentUser: null,
+
+  initAuth() {
+    if (typeof fbAuth === 'undefined' || !fbAuth) {
+      console.warn('Firebase Auth não inicializado.');
+      return;
+    }
+
+    fbAuth.onAuthStateChanged(user => {
+      const loginOverlay = document.getElementById('loginOverlay');
+      const userProfile = document.getElementById('headerUserProfile');
+      const userNameEl = document.getElementById('headerUserName');
+      const userBadgeEl = document.getElementById('headerUserBadge');
+      const userAvatarEl = document.getElementById('headerUserAvatar');
+
+      if (user && user.email) {
+        this.currentUser = this.getUserRole(user.email);
+
+        if (loginOverlay) loginOverlay.style.display = 'none';
+        if (userProfile) userProfile.style.display = 'flex';
+        if (userNameEl) userNameEl.textContent = this.currentUser.name;
+        if (userBadgeEl) {
+          userBadgeEl.textContent = this.currentUser.title;
+          userBadgeEl.className = 'user-badge ' + this.currentUser.badgeClass;
+        }
+        if (userAvatarEl) {
+          userAvatarEl.innerHTML = `<i class="${this.currentUser.avatarIcon}"></i>`;
+        }
+
+        // Inicia sincronização do Firestore
+        StorageService.initFirestoreSync(() => {
+          this.refreshAll();
+        });
+
+        this.applyRolePermissions();
+        this.refreshAll();
+      } else {
+        this.currentUser = null;
+        if (loginOverlay) loginOverlay.style.display = 'flex';
+        if (userProfile) userProfile.style.display = 'none';
+        StorageService.stopFirestoreSync();
+      }
+    });
+  },
+
+  resolveEmail(usernameOrEmail) {
+    const cleaned = (usernameOrEmail || '').trim().toLowerCase();
+    if (cleaned.includes('@')) {
+      return cleaned;
+    }
+    if (cleaned === 'vinicius') {
+      return 'vinicius@ure.local';
+    }
+    if (cleaned === 'setec') {
+      return 'setec@ure.local';
+    }
+    if (cleaned === 'ure sorocaba' || cleaned === 'uresorocaba' || cleaned === 'ure') {
+      return 'ure.sorocaba@ure.local';
+    }
+    return cleaned + '@ure.local';
+  },
+
+  getUserRole(email) {
+    const e = (email || '').toLowerCase().trim();
+    if (e.includes('vinicius')) {
+      return {
+        role: 'superadmin',
+        title: 'Administrador Total',
+        name: 'Vinicius',
+        email: email,
+        badgeClass: 'role-superadmin',
+        avatarIcon: 'fa-solid fa-crown',
+        canManageEquipments: true,
+        canLoanAndReturn: true,
+        canPrint: true,
+        canEditLoan: true,
+        canDeleteHistory: true
+      };
+    }
+    if (e.includes('setec')) {
+      return {
+        role: 'setec',
+        title: 'Administrador (Setec)',
+        name: 'Setec',
+        email: email,
+        badgeClass: 'role-setec',
+        avatarIcon: 'fa-solid fa-user-gear',
+        canManageEquipments: true,
+        canLoanAndReturn: true,
+        canPrint: true,
+        canEditLoan: true,
+        canDeleteHistory: false // Bloqueado de excluir histórico!
+      };
+    }
+    // URE Sorocaba / Operador de Atendimento
+    return {
+      role: 'operator',
+      title: 'Atendimento URE',
+      name: 'URE Sorocaba',
+      email: email,
+      badgeClass: 'role-operator',
+      avatarIcon: 'fa-solid fa-user-check',
+      canManageEquipments: false, // Bloqueado de cadastrar/editar/excluir equipamentos
+      canLoanAndReturn: true,     // Liberado apenas para novos empréstimos e devoluções
+      canPrint: true,             // Liberado para imprimir termos e relatórios
+      canEditLoan: false,         // Bloqueado de editar empréstimo
+      canDeleteHistory: false     // Bloqueado de excluir histórico
+    };
+  },
+
+  currentUserCan(permission) {
+    if (!this.currentUser) return false;
+    return Boolean(this.currentUser[permission]);
+  },
+
+  async handleLogin(event) {
+    event.preventDefault();
+    const userInput = document.getElementById('loginUsername');
+    const pwdInput = document.getElementById('loginPassword');
+    const errorMsg = document.getElementById('loginErrorMsg');
+    const errorText = document.getElementById('loginErrorText');
+    const btnText = document.getElementById('btnLoginText');
+    const btnSpinner = document.getElementById('btnLoginSpinner');
+    const btnSubmit = document.getElementById('btnLoginSubmit');
+
+    if (!userInput || !pwdInput) return;
+    const userVal = userInput.value.trim();
+    const pwdVal = pwdInput.value;
+
+    if (!userVal || !pwdVal) {
+      if (errorMsg) {
+        errorText.textContent = 'Por favor, preencha o usuário e a senha.';
+        errorMsg.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (errorMsg) errorMsg.style.display = 'none';
+    if (btnText) btnText.style.display = 'none';
+    if (btnSpinner) btnSpinner.style.display = 'inline-block';
+    if (btnSubmit) btnSubmit.disabled = true;
+
+    try {
+      const email = this.resolveEmail(userVal);
+      await fbAuth.signInWithEmailAndPassword(email, pwdVal);
+      // Login com sucesso, onAuthStateChanged cuidará do redirecionamento
+      userInput.value = '';
+      pwdInput.value = '';
+    } catch (err) {
+      console.error('Erro de autenticação:', err);
+      let msg = 'Usuário ou senha incorretos.';
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        msg = 'Usuário ou senha incorretos. Verifique suas credenciais.';
+      } else if (err.code === 'auth/network-request-failed') {
+        msg = 'Falha de conexão com o Firebase. Verifique sua internet.';
+      } else if (err.code === 'auth/too-many-requests') {
+        msg = 'Muitas tentativas sem sucesso. Aguarde alguns instantes.';
+      }
+      if (errorMsg) {
+        errorText.textContent = msg;
+        errorMsg.style.display = 'flex';
+      }
+    } finally {
+      if (btnText) btnText.style.display = 'inline-block';
+      if (btnSpinner) btnSpinner.style.display = 'none';
+      if (btnSubmit) btnSubmit.disabled = false;
+    }
+  },
+
+  async logout() {
+    if (confirm('Deseja realmente sair do sistema?')) {
+      try {
+        await fbAuth.signOut();
+        this.showToast('Você saiu do sistema.', 'info');
+      } catch (err) {
+        console.error('Erro ao sair:', err);
+      }
+    }
+  },
+
+  togglePasswordVisibility() {
+    const pwdInput = document.getElementById('loginPassword');
+    const icon = document.getElementById('iconTogglePwd');
+    if (!pwdInput || !icon) return;
+
+    if (pwdInput.type === 'password') {
+      pwdInput.type = 'text';
+      icon.className = 'fa-regular fa-eye-slash';
+    } else {
+      pwdInput.type = 'password';
+      icon.className = 'fa-regular fa-eye';
+    }
+  },
+
+  applyRolePermissions() {
+    const btnCad = document.getElementById('btnCadastrarEquipamento');
+    if (btnCad) {
+      btnCad.style.display = this.currentUserCan('canManageEquipments') ? 'inline-flex' : 'none';
+    }
+  },
+
   init() {
+    this.initAuth();
     StorageService.syncEquipmentBorrowers();
     this.setupClock();
     this.setupNavigation();
@@ -495,12 +700,14 @@ const App = {
           <td>${borrowerCell}</td>
           <td style="text-align: center;">
             <div class="action-buttons-cell">
-              <button class="btn-action-icon" title="Editar equipamento" onclick="App.openEditEquipModal('${e.id}')">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button class="btn-action-icon delete-btn" title="Excluir equipamento" onclick="App.confirmDeleteEquip('${e.id}')">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
+              ${this.currentUserCan('canManageEquipments') ? `
+                <button class="btn-action-icon" title="Editar equipamento" onclick="App.openEditEquipModal('${e.id}')">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button class="btn-action-icon delete-btn" title="Excluir equipamento" onclick="App.confirmDeleteEquip('${e.id}')">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              ` : `<span style="color: var(--text-muted); font-size: 13px;">-</span>`}
             </div>
           </td>
         </tr>
@@ -566,9 +773,10 @@ const App = {
 
         if (loanId) {
           actionButtons = `
-            <button class="btn-action-icon edit-loan-btn" title="Editar dados do empréstimo" onclick="App.openEditLoanModal('${loanId}')">
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
+            ${this.currentUserCan('canEditLoan') ? `
+              <button class="btn-action-icon edit-loan-btn" title="Editar dados do empréstimo" onclick="App.openEditLoanModal('${loanId}')">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>` : ''}
             <button class="btn-action-icon return-btn" title="Devolver ao estoque" onclick="App.openReturnModal('${loanId}')">
               <i class="fa-solid fa-check"></i>
             </button>
@@ -660,9 +868,10 @@ const App = {
 
         if (loanId) {
           actionButtons = `
-            <button class="btn-action-icon edit-loan-btn" title="Editar dados do empréstimo" onclick="App.openEditLoanModal('${loanId}')">
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
+            ${this.currentUserCan('canEditLoan') ? `
+              <button class="btn-action-icon edit-loan-btn" title="Editar dados do empréstimo" onclick="App.openEditLoanModal('${loanId}')">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>` : ''}
             <button class="btn-action-icon return-btn" title="Devolver ao estoque" onclick="App.openReturnModal('${loanId}')">
               <i class="fa-solid fa-check"></i>
             </button>
@@ -720,9 +929,10 @@ const App = {
           <td class="text-center"><span class="badge-pill status-atrasado">Prazo Vencido</span></td>
           <td style="text-align: center;">
             <div class="action-buttons-cell">
-              <button class="btn-action-icon edit-loan-btn" title="Editar dados do empréstimo" onclick="App.openEditLoanModal('${l.id}')">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
+              ${this.currentUserCan('canEditLoan') ? `
+                <button class="btn-action-icon edit-loan-btn" title="Editar dados do empréstimo" onclick="App.openEditLoanModal('${l.id}')">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>` : ''}
               <button class="btn-action-icon return-btn" title="Devolver ao estoque" onclick="App.openReturnModal('${l.id}')">
                 <i class="fa-solid fa-check"></i>
               </button>
@@ -797,9 +1007,11 @@ const App = {
               <button class="btn-action-icon print-btn" title="Visualizar Termo / Comprovante" onclick="App.openTermModal('${l.id}')">
                 <i class="fa-solid fa-file-lines"></i>
               </button>
-              <button class="btn-action-icon delete-btn" title="Excluir empréstimo" onclick="App.confirmDeleteLoan('${l.id}')">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
+              ${this.currentUserCan('canDeleteHistory') ? `
+                <button class="btn-action-icon delete-btn" title="Excluir empréstimo" onclick="App.confirmDeleteLoan('${l.id}')">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              ` : ''}
             </div>
           </td>
         </tr>
@@ -1516,6 +1728,10 @@ const App = {
   },
 
   openNewEquipModal(defaultBrand = 'Lenovo') {
+    if (!this.currentUserCan('canManageEquipments')) {
+      this.showToast('Ação bloqueada: seu perfil não tem permissão para cadastrar equipamentos.', 'error');
+      return;
+    }
     document.getElementById('formEquip').reset();
     this.resetNewEquipLoanForm();
     const serialInputNew = document.getElementById('equipSerialInput');
@@ -1539,6 +1755,10 @@ const App = {
   },
 
   openEditEquipModal(equipId) {
+    if (!this.currentUserCan('canManageEquipments')) {
+      this.showToast('Ação bloqueada: seu perfil não tem permissão para editar equipamentos.', 'error');
+      return;
+    }
     const eq = StorageService.getEquipmentById(equipId);
     if (!eq) return;
 
@@ -1892,6 +2112,10 @@ const App = {
   },
 
   confirmDeleteEquip(equipId) {
+    if (!this.currentUserCan('canManageEquipments')) {
+      this.showToast('Ação bloqueada: seu perfil não tem permissão para excluir equipamentos.', 'error');
+      return;
+    }
     const eq = StorageService.getEquipmentById(equipId);
     if (!eq) return;
 
@@ -1908,6 +2132,10 @@ const App = {
   },
 
   confirmDeleteLoan(loanId) {
+    if (!this.currentUserCan('canDeleteHistory')) {
+      this.showToast('Ação bloqueada: seu perfil não tem permissão para excluir histórico de empréstimos.', 'error');
+      return;
+    }
     const loan = StorageService.getLoanById(loanId);
     if (!loan) return;
 

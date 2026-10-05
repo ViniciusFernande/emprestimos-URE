@@ -59,6 +59,119 @@ const StorageService = {
     } catch (e) {}
   },
 
+  // ==========================================
+  // SINCRONIZAÇÃO EM TEMPO REAL COM O FIRESTORE
+  // ==========================================
+  isFirestoreReady() {
+    return typeof fbDb !== 'undefined' && fbDb !== null && 
+           typeof fbAuth !== 'undefined' && fbAuth !== null && 
+           fbAuth.currentUser !== null;
+  },
+
+  initFirestoreSync(onDataLoaded) {
+    if (!this.isFirestoreReady()) return;
+
+    if (this._unsubEquips) this._unsubEquips();
+    if (this._unsubLoans) this._unsubLoans();
+
+    let initialEquipsLoaded = false;
+    let initialLoansLoaded = false;
+
+    const checkInitial = () => {
+      if (initialEquipsLoaded && initialLoansLoaded) {
+        this.migrateLocalToFirestore();
+        if (typeof onDataLoaded === 'function') onDataLoaded();
+        if (window.App && typeof window.App.refreshAll === 'function') {
+          window.App.refreshAll();
+        }
+      }
+    };
+
+    // Escuta equipamentos em tempo real
+    this._unsubEquips = fbDb.collection('equipamentos').onSnapshot(snapshot => {
+      const list = [];
+      snapshot.forEach(doc => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+
+      if (snapshot.size > 0 || initialEquipsLoaded) {
+        localStorage.setItem(STORAGE_KEYS.EQUIPMENT, JSON.stringify(list));
+      }
+      
+      initialEquipsLoaded = true;
+      checkInitial();
+
+      if (window.App && typeof window.App.refreshAll === 'function' && initialLoansLoaded) {
+        window.App.refreshAll();
+      }
+    }, err => {
+      console.warn('Erro ao escutar equipamentos no Firestore:', err);
+      initialEquipsLoaded = true;
+      checkInitial();
+    });
+
+    // Escuta empréstimos em tempo real
+    this._unsubLoans = fbDb.collection('emprestimos').onSnapshot(snapshot => {
+      const list = [];
+      snapshot.forEach(doc => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+
+      if (snapshot.size > 0 || initialLoansLoaded) {
+        localStorage.setItem(STORAGE_KEYS.LOANS, JSON.stringify(list));
+      }
+
+      initialLoansLoaded = true;
+      checkInitial();
+
+      if (window.App && typeof window.App.refreshAll === 'function' && initialEquipsLoaded) {
+        window.App.refreshAll();
+      }
+    }, err => {
+      console.warn('Erro ao escutar empréstimos no Firestore:', err);
+      initialLoansLoaded = true;
+      checkInitial();
+    });
+  },
+
+  stopFirestoreSync() {
+    if (this._unsubEquips) { this._unsubEquips(); this._unsubEquips = null; }
+    if (this._unsubLoans) { this._unsubLoans(); this._unsubLoans = null; }
+  },
+
+  async migrateLocalToFirestore() {
+    if (!this.isFirestoreReady()) return;
+    try {
+      const equipSnap = await fbDb.collection('equipamentos').limit(1).get();
+      if (equipSnap.empty) {
+        const localEquips = this.getEquipmentList();
+        if (localEquips.length > 0) {
+          const batch = fbDb.batch();
+          localEquips.forEach(eq => {
+            const ref = fbDb.collection('equipamentos').doc(eq.id);
+            batch.set(ref, eq);
+          });
+          await batch.commit();
+        }
+      }
+
+      const loanSnap = await fbDb.collection('emprestimos').limit(1).get();
+      if (loanSnap.empty) {
+        const localLoans = this.getLoanList();
+        if (localLoans.length > 0) {
+          const batch = fbDb.batch();
+          localLoans.forEach(l => {
+            const ref = fbDb.collection('emprestimos').doc(l.id);
+            batch.set(ref, l);
+          });
+          await batch.commit();
+        }
+      }
+    } catch (e) {
+      console.warn('Migração automática para o Firestore:', e);
+    }
+  },
+
   getEquipmentList() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.EQUIPMENT);
@@ -296,6 +409,11 @@ const StorageService = {
       list.push(item);
     }
     this.saveEquipmentList(list);
+    if (this.isFirestoreReady() && item && item.id) {
+      fbDb.collection('equipamentos').doc(item.id).set(item, { merge: true }).catch(err => {
+        console.warn('Erro ao salvar equipamento no Firestore:', err);
+      });
+    }
     return list[index] || item;
   },
 
@@ -303,6 +421,11 @@ const StorageService = {
     let list = this.getEquipmentList();
     list = list.filter(e => e.id !== id);
     this.saveEquipmentList(list);
+    if (this.isFirestoreReady() && id) {
+      fbDb.collection('equipamentos').doc(id).delete().catch(err => {
+        console.warn('Erro ao excluir equipamento no Firestore:', err);
+      });
+    }
   },
 
   deleteLoan(id) {
@@ -326,6 +449,11 @@ const StorageService = {
 
     list = list.filter(l => l.id !== id);
     this.saveLoanList(list);
+    if (this.isFirestoreReady() && id) {
+      fbDb.collection('emprestimos').doc(id).delete().catch(err => {
+        console.warn('Erro ao excluir empréstimo no Firestore:', err);
+      });
+    }
   },
 
   removeTestRecord() {
