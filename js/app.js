@@ -3,11 +3,20 @@
  * Lógica Principal da Aplicação (SPA Controller)
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  App.init();
-});
+function initAppWhenReady() {
+  if (window.App && typeof window.App.init === 'function') {
+    window.App.init();
+  }
+}
 
-const App = {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAppWhenReady);
+} else {
+  initAppWhenReady();
+}
+
+window.App = {
+
 
   // Sincroniza o picker nativo com o texto no formato DD/MM/AAAA ou YYYY-MM-DD
   syncDatePickerFromText(targetInputId, pickerInputId) {
@@ -283,6 +292,22 @@ async logout() {
       pwdInput.type = 'password';
       icon.className = 'fa-regular fa-eye';
     }
+  },
+
+  toggleUserDropdown(event) {
+    if (event) {
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+    }
+    const menu = document.getElementById('userDropdownMenu');
+    if (!menu) return;
+    const isVisible = menu.style.display === 'block';
+    menu.style.display = isVisible ? 'none' : 'block';
+  },
+
+  closeUserDropdown() {
+    const menu = document.getElementById('userDropdownMenu');
+    if (menu) menu.style.display = 'none';
   },
 
   applyRolePermissions() {
@@ -2446,6 +2471,28 @@ async logout() {
 
   setupEventListeners() {
 
+    // Listeners do formulário de login (garantia 100% direta no DOM)
+    const btnLogin = document.getElementById('btnLoginSubmit');
+    if (btnLogin) {
+      btnLogin.onclick = (e) => this.handleLogin(e);
+    }
+    const btnPwdToggle = document.getElementById('btnTogglePwd');
+    if (btnPwdToggle) {
+      btnPwdToggle.onclick = () => this.togglePasswordVisibility();
+    }
+    const loginUserInp = document.getElementById('loginUsername');
+    if (loginUserInp) {
+      loginUserInp.onkeydown = (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this.handleLogin(e); }
+      };
+    }
+    const loginPwdInp = document.getElementById('loginPassword');
+    if (loginPwdInp) {
+      loginPwdInp.onkeydown = (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this.handleLogin(e); }
+      };
+    }
+
     document.addEventListener('click', (e) => {
       const wrapper = document.getElementById('headerUserProfile');
       if (wrapper && !wrapper.contains(e.target)) {
@@ -2674,3 +2721,5 @@ async logout() {
     return str;
   }
 };
+
+window.App = App;

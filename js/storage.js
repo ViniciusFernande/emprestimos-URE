@@ -1,3 +1,4 @@
+var StorageService = window.StorageService || {};
 /**
  * URE SOROCABA - Controle de Empréstimos de Equipamentos
  * Módulo de Armazenamento e Persistência Local
@@ -9,7 +10,8 @@ const STORAGE_KEYS = {
   CONFIG: 'ure_config_v2'
 };
 
-const StorageService = {
+window.StorageService = {
+
   init() {
     // Limpeza de versoes anteriores com dados de demonstracao (zera o sistema)
     if (localStorage.getItem('ure_equipamentos_v1') || localStorage.getItem('ure_emprestimos_v1')) {
@@ -915,3 +917,5 @@ const StorageService = {
 };
 
 StorageService.init();
+
+window.StorageService = StorageService;
