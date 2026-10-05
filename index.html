@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>URE SOROCABA - Controle de Empréstimos de Equipamentos</title>
+ <!-- Font Awesome Icons -->
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+ <!-- Folhas de Estilos -->
+ <link rel="icon" type="image/png" href="img/logo_ure.png">
+  <link rel="stylesheet" href="css/styles.css">
+ <link rel="stylesheet" href="css/print.css">
+</head>
+<body>
+
+ <!-- Cabeçalho Superior -->
+ <header class="app-header">
+ <div class="header-left">
+ <button class="menu-toggle" id="menuToggle" title="Recolher / Expandir Menu">
+ <i class="fa-solid fa-bars"></i>
+ </button>
+ <div class="brand-info">
+        <img src="img/logo_ure.png" alt="Logo URE Sorocaba" class="header-logo">
+        <div class="brand-text">
+          <div class="brand-title">URE SOROCABA</div>
+          <div class="brand-subtitle">Controle de Empréstimos de Equipamentos</div>
+        </div>
+      </div>
+ </div>
+
+ <div class="header-right">
+ <div class="system-clock" id="systemClock">
+ <i class="fa-regular fa-clock"></i> Carregando...
+ </div>
+ </div>
+ </header>
+
+ <!-- Container Geral -->
+ <div class="app-container">
+
+ <!-- Menu Lateral (Sidebar) -->
+ <aside class="app-sidebar" id="appSidebar">
+ <nav class="sidebar-nav">
+ <a class="nav-item active" data-view="dashboard" title="Visão Geral">
+ <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+ <span class="nav-text">Visão Geral</span>
+ </a>
+ <a class="nav-item" data-view="all-equipment" title="Todos Equipamentos">
+ <span class="nav-icon"><i class="fa-solid fa-cubes"></i></span>
+ <span class="nav-text">Todos Equipamentos</span>
+ </a>
+ <a class="nav-item" data-view="lenovo" title="Lenovo">
+ <span class="nav-icon" style="color: #fb7185;"><i class="fa-solid fa-laptop"></i></span>
+ <span class="nav-text">Lenovo</span>
+ </a>
+ <a class="nav-item" data-view="multilaser" title="Multilaser (Ultra)">
+ <span class="nav-icon" style="color: #60a5fa;"><i class="fa-solid fa-laptop"></i></span>
+ <span class="nav-text">Multilaser (Ultra)</span>
+ </a>
+ <a class="nav-item" data-view="delayed" title="Empréstimos atrasados">
+ <span class="nav-icon" style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+ <span class="nav-text">Empréstimos atrasados</span>
+ </a>
+ <a class="nav-item" data-view="history" title="Histórico de Empréstimos">
+ <span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+ <span class="nav-text">Histórico de Empréstimos</span>
+ </a>
+ <a class="nav-item" data-view="reports" title="Imprimir Relatório">
+ <span class="nav-icon"><i class="fa-solid fa-print"></i></span>
+ <span class="nav-text">Imprimir Relatório</span>
+ </a>
+ </nav>
+ </aside>
+
+ <!-- Conteúdo Principal -->
+ <main class="app-main">
+
+ <!-- ========================================== -->
+ <!-- VIEW 1: VISÃO GERAL (DASHBOARD) -->
+ <!-- ========================================== -->
+ <section class="view-section active" id="view-dashboard">
+ 
+ <!-- 4 Top Stat Cards -->
+ <div class="metrics-row">
+ <div class="stat-card total" onclick="App.openEquipmentsFiltered('all', 'all')" title="Clique para ver todos os equipamentos cadastrados" role="button" tabindex="0">
+ <div class="stat-info">
+ <span class="stat-label">TOTAL DE EQUIPAMENTOS</span>
+ <div class="stat-value-group">
+ <span class="stat-value" id="statTotalNum">0</span>
+ </div>
+ <span class="stat-subtext">(todos os modelos)</span>
+ </div>
+ <div class="stat-icon-wrapper">
+ <i class="fa-solid fa-laptop"></i>
+ </div>
+ </div>
+
+ <div class="stat-card disponiveis" onclick="App.openEquipmentsFiltered('disponivel', 'all')" title="Clique para ver equipamentos disponíveis" role="button" tabindex="0">
+ <div class="stat-info">
+ <span class="stat-label">DISPONÍVEIS</span>
+ <div class="stat-value-group">
+ <span class="stat-value" id="statDisponiveisNum">0</span>
+ <span class="stat-pct" id="statDisponiveisPct">(0,0%)</span>
+ </div>
+ <span class="stat-subtext">Prontos para empréstimo</span>
+ </div>
+ <div class="stat-icon-wrapper">
+ <i class="fa-solid fa-circle-check"></i>
+ </div>
+ </div>
+
+ <div class="stat-card emprestados" onclick="App.openEquipmentsFiltered('emprestado', 'all')" title="Clique para ver equipamentos emprestados" role="button" tabindex="0">
+ <div class="stat-info">
+ <span class="stat-label">EMPRESTADOS</span>
+ <div class="stat-value-group">
+ <span class="stat-value" id="statEmprestadosNum">0</span>
+ <span class="stat-pct" id="statEmprestadosPct">(0,0%)</span>
+ </div>
+ <span class="stat-subtext">Atualmente em uso</span>
+ </div>
+ <div class="stat-icon-wrapper">
+ <i class="fa-solid fa-user-check"></i>
+ </div>
+ </div>
+
+ <div class="stat-card atrasados" onclick="App.navigateTo('delayed')" title="Clique para ver empréstimos atrasados" role="button" tabindex="0">
+ <div class="stat-info">
+ <span class="stat-label">EM ATRASO</span>
+ <div class="stat-value-group">
+ <span class="stat-value" id="statAtrasadosNum">0</span>
+ <span class="stat-pct" id="statAtrasadosPct">(0,0%)</span>
+ </div>
+ <span class="stat-subtext">Requer devolução</span>
+ </div>
+ <div class="stat-icon-wrapper">
+ <i class="fa-solid fa-triangle-exclamation"></i>
+ </div>
+ </div>
+ </div>
+
+ <!-- Painéis Lado a Lado (Lenovo & Multilaser) -->
+ <div class="dashboard-grid-dual">
+
+ <!-- Painel Esquerdo: LENOVO -->
+ <div class="panel-card">
+ <div class="panel-header">
+ <div class="panel-brand-meta">
+ <div class="panel-device-avatar lenovo">
+ <i class="fa-solid fa-laptop"></i>
+ </div>
+ <div class="panel-title-wrap">
+ <div class="panel-tag-row">
+ <span class="badge-brand lenovo">Lenovo</span>
+ </div>
+ </div>
+ </div>
+ <button class="btn-new-loan" onclick="App.openNewLenovoModal()">
+ <i class="fa-solid fa-plus"></i> Novo Empréstimo
+ </button>
+ </div>
+
+ <!-- Sub-métricas Lenovo -->
+ <div class="panel-submetrics">
+ <div class="submetric-box">
+ <span class="submetric-label"><i class="fa-solid fa-laptop"></i> TOTAL</span>
+ <span class="submetric-num" id="lenovoTotal">0</span>
+ </div>
+ <div class="submetric-box disponiveis">
+ <span class="submetric-label"><i class="fa-solid fa-check"></i> DISPONÍVEIS</span>
+ <span class="submetric-num" id="lenovoDisp">0</span>
+ </div>
+ <div class="submetric-box emprestados">
+ <span class="submetric-label"><i class="fa-solid fa-user"></i> EMPRESTADOS</span>
+ <span class="submetric-num" id="lenovoEmp">0</span>
+ </div>
+ <div class="submetric-box atrasados">
+ <span class="submetric-label"><i class="fa-solid fa-triangle-exclamation"></i> EM ATRASO</span>
+ <span class="submetric-num" id="lenovoAtr">0</span>
+ </div>
+ </div>
+
+ <!-- Tabela de Empréstimos Lenovo -->
+ <div class="panel-table-section">
+ <div class="panel-table-header">
+ <span class="table-section-title">LISTA DE EMPRÉSTIMOS (LENOVO)</span>
+ <a class="table-view-all-link" onclick="App.navigateTo('lenovo')">
+ Ver todos os empréstimos <i class="fa-solid fa-arrow-right"></i>
+ </a>
+ </div>
+ <div class="table-responsive">
+ <table class="custom-table">
+ <thead>
+ <tr>
+ <th>Nome</th>
+ <th>Equipamento</th>
+ <th class="text-center">Fonte?</th>
+ <th class="text-center">Data do Empréstimo</th>
+ <th class="text-center">Status</th>
+ <th style="text-align: center;">Ações</th>
+ </tr>
+ </thead>
+ <tbody id="dashLenovoTbody">
+ <!-- Dinâmico via JS -->
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+
+ <!-- Painel Direito: MULTILASER (ULTRA) -->
+ <div class="panel-card">
+ <div class="panel-header">
+ <div class="panel-brand-meta">
+ <div class="panel-device-avatar multi">
+ <i class="fa-solid fa-laptop"></i>
+ </div>
+ <div class="panel-title-wrap">
+ <div class="panel-tag-row">
+ <span class="badge-brand multi">MULTILASER</span>
+ </div>
+ </div>
+ </div>
+ <button class="btn-new-loan blue" onclick="App.openNewMultilaserModal()">
+ <i class="fa-solid fa-plus"></i> Novo Empréstimo
+ </button>
+ </div>
+
+ <!-- Sub-métricas Multilaser -->
+ <div class="panel-submetrics">
+ <div class="submetric-box">
+ <span class="submetric-label"><i class="fa-solid fa-laptop"></i> TOTAL</span>
+ <span class="submetric-num" id="multiTotal">0</span>
+ </div>
+ <div class="submetric-box disponiveis">
+ <span class="submetric-label"><i class="fa-solid fa-check"></i> DISPONÍVEIS</span>
+ <span class="submetric-num" id="multiDisp">0</span>
+ </div>
+ <div class="submetric-box emprestados">
+ <span class="submetric-label"><i class="fa-solid fa-user"></i> EMPRESTADOS</span>
+ <span class="submetric-num" id="multiEmp">0</span>
+ </div>
+ <div class="submetric-box atrasados">
+ <span class="submetric-label"><i class="fa-solid fa-triangle-exclamation"></i> EM ATRASO</span>
+ <span class="submetric-num" id="multiAtr">0</span>
+ </div>
+ </div>
+
+ <!-- Tabela de Empréstimos Multilaser -->
+ <div class="panel-table-section">
+ <div class="panel-table-header">
+ <span class="table-section-title">LISTA DE EMPRÉSTIMOS (MULTILASER ULTRA)</span>
+ <a class="table-view-all-link" onclick="App.navigateTo('multilaser')">
+ Ver todos os empréstimos <i class="fa-solid fa-arrow-right"></i>
+ </a>
+ </div>
+ <div class="table-responsive">
+ <table class="custom-table">
+ <thead>
+ <tr>
+ <th>Nome</th>
+ <th>Equipamento</th>
+ <th class="text-center">Fonte?</th>
+ <th class="text-center">Data Empréstimo</th>
+ <th class="text-center">Prev. Devolução</th>
+ <th class="text-center">Status</th>
+ <th style="text-align: center;">Ações</th>
+ </tr>
+ </thead>
+ <tbody id="dashMultiTbody">
+ <!-- Dinâmico via JS -->
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+
+ </div>
+
+ <!-- Linha Inferior: Alertas e Gráfico Donut -->
+ <div class="dashboard-grid-bottom">
+ <!-- Alertas de Devolução -->
+ <div class="alerts-card">
+ <div class="alerts-header">
+ <div class="alerts-header-left">
+ <div class="alerts-icon-wrap">
+ <i class="fa-solid fa-triangle-exclamation"></i>
+ </div>
+ <div>
+ <div class="alerts-title">Alertas de Devolução</div>
+ <div class="alerts-subtitle">Prazos de devolução vencidos ou próximos</div>
+ </div>
+ </div>
+ <button class="btn-alerts-all" onclick="App.navigateTo('delayed')">
+ Ver todos
+ </button>
+ </div>
+ <div class="alerts-list" id="dashAlertsList">
+ <!-- Dinâmico via JS -->
+ </div>
+ </div>
+
+ <!-- Status Geral (Gráfico Donut) -->
+ <div class="status-geral-card">
+ <div class="chart-header">
+ <i class="fa-solid fa-chart-pie"></i>
+ <span class="chart-header-title">Status Geral</span>
+ </div>
+ <div class="chart-container">
+ <div class="donut-chart-wrap">
+ <canvas id="donutCanvas" class="donut-canvas" width="170" height="170"></canvas>
+ <div class="donut-center-text">
+ <div class="donut-center-num" id="chartCenterTotal">0</div>
+ <div class="donut-center-label">Equipamentos</div>
+ </div>
+ </div>
+ <div class="chart-legend">
+ <div class="legend-item">
+ <div class="legend-color-dot" style="background-color: #10b981;"></div>
+ <span>Disponíveis</span>
+ </div>
+ <div class="legend-item">
+ <div class="legend-color-dot" style="background-color: #0284c7;"></div>
+ <span>Emprestados</span>
+ </div>
+ <div class="legend-item">
+ <div class="legend-color-dot" style="background-color: #ef4444;"></div>
+ <span>Em atraso</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ </section>
+
+ <!-- ========================================== -->
+ <!-- VIEW 2: TODOS EQUIPAMENTOS -->
+ <!-- ========================================== -->
+ <section class="view-section" id="view-all-equipment">
+ <div class="panel-card">
+ <div class="panel-header">
+ <div>
+ <h2 style="font-size: 18px; font-weight: 700;">Todos os Equipamentos Cadastrados</h2>
+ <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;" id="equipTableCount">Carregando...</div>
+ </div>
+ <button class="btn-primary" onclick="App.openNewEquipModal('Lenovo')">
+ <i class="fa-solid fa-plus"></i> Cadastrar Equipamento
+ </button>
+ </div>
+
+ <!-- Filtros e Busca -->
+ <div style="padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; flex-wrap: wrap;">
+ <div style="flex: 1; min-width: 240px; position: relative;">
+ <input type="text" id="equipSearchInput" class="form-input" placeholder="Buscar por Patrimônio, Série, Modelo ou Responsável...">
+ </div>
+ <div style="width: 180px;">
+ <select id="equipBrandFilter" class="form-select">
+ <option value="all">Todas as Marcas</option>
+ <option value="lenovo">Lenovo</option>
+ <option value="multi">Multilaser (Ultra)</option>
+ </select>
+ </div>
+ <div style="width: 180px;">
+ <select id="equipStatusFilter" class="form-select">
+ <option value="all">Todos os Status</option>
+ <option value="disponivel">Disponíveis</option>
+ <option value="emprestado">Emprestados</option>
+ <option value="manutencao">Em Manutenção</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="table-responsive" style="padding: 10px 20px 20px;">
+ <table class="custom-table">
+ <thead>
+ <tr>
+ <th>Patrimônio / ID</th>
+ <th>Marca</th>
+ <th>Modelo</th>
+ <th>Número de Série</th>
+ <th class="text-center">Status</th>
+ <th>Responsável Atual</th>
+ <th style="text-align: center;">Ações</th>
+ </tr>
+ </thead>
+ <tbody id="allEquipmentsTbody">
+ <!-- Dinâmico -->
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </section>
+
+ <!-- ========================================== -->
+ <!-- VIEW 3: ABA EXCLUSIVA LENOVO -->
+ <!-- ========================================== -->
+ <section class="view-section" id="view-lenovo">
+ <div class="panel-card">
+ <div class="panel-header">
+ <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge-brand lenovo" style="font-size: 14px; padding: 4px 10px;">LENOVO</span>
+        </div>
+ <div style="display: flex; gap: 8px;">
+<button class="btn-new-loan" onclick="App.openNewLenovoModal()" style="font-size: 14px; padding: 8px 16px;">
+ <i class="fa-solid fa-plus"></i> Novo Empréstimo Lenovo
+ </button>
+ </div>
+ </div>
+
+ <!-- Tabela de Equipamentos Lenovo Cadastrados -->
+ <div id="panelLenovoEquips">
+ <div style="padding: 14px 20px; background: #ffffff; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; flex-wrap: wrap;">
+ <div style="flex: 1; min-width: 240px;">
+ <input type="text" id="lenovoEquipListSearch" class="form-input" placeholder="Buscar Lenovo por patrimônio, série ou responsável..." oninput="App.renderLenovoTab()">
+ </div>
+ <div style="width: 180px;">
+ <select id="lenovoEquipListStatusFilter" class="form-select" onchange="App.renderLenovoTab()">
+ <option value="all">Todos os Status</option>
+ <option value="disponivel">Apenas Disponíveis</option>
+ <option value="emprestado">Apenas Emprestados</option>
+ <option value="manutencao">Em Manutenção</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="table-responsive" style="padding: 10px 20px 20px;">
+ <table class="custom-table">
+ <thead>
+ <tr>
+ <th>Patrimônio / ID</th>
+ <th>Modelo</th>
+ <th>Número de Série</th>
+ <th class="text-center">Status</th>
+ <th>Responsável Atual</th>
+ <th style="text-align: center;">Ações</th>
+ </tr>
+ </thead>
+ <tbody id="lenovoTabEquipsTbody">
+ <!-- Dinâmico -->
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- ========================================== -->
+ <!-- VIEW 4: ABA EXCLUSIVA MULTILASER (ULTRA) -->
+ <!-- ========================================== -->
+ <section class="view-section" id="view-multilaser">
+ <div class="panel-card">
+ <div class="panel-header">
+ <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge-brand multi" style="font-size: 14px; padding: 4px 10px;">MULTILASER ULTRA</span>
+        </div>
+ <div style="display: flex; gap: 8px;">
+<button class="btn-new-loan blue" onclick="App.openNewMultilaserModal()" style="font-size: 14px; padding: 8px 16px;">
+ <i class="fa-solid fa-plus"></i> Novo Empréstimo Multilaser
+ </button>
+ </div>
+ </div>
+
+ <!-- Tabela de Equipamentos Multilaser Cadastrados -->
+ <div id="panelMultiEquips">
+ <div style="padding: 14px 20px; background: #ffffff; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; flex-wrap: wrap;">
+ <div style="flex: 1; min-width: 240px;">
+ <input type="text" id="multiEquipListSearch" class="form-input" placeholder="Buscar Multilaser por patrimônio, série ou responsável..." oninput="App.renderMultilaserTab()">
+ </div>
+ <div style="width: 180px;">
+ <select id="multiEquipListStatusFilter" class="form-select" onchange="App.renderMultilaserTab()">
+ <option value="all">Todos os Status</option>
+ <option value="disponivel">Apenas Disponíveis</option>
+ <option value="emprestado">Apenas Emprestados</option>
+ <option value="manutencao">Em Manutenção</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="table-responsive" style="padding: 10px 20px 20px;">
+ <table class="custom-table">
+ <thead>
+ <tr>
+ <th>Patrimônio / ID</th>
+ <th>Modelo</th>
+ <th>Número de Série</th>
+ <th class="text-center">Status</th>
+ <th>Responsável Atual</th>
+ <th style="text-align: center;">Ações</th>
+ </tr>
+ </thead>
+ <tbody id="multiTabEquipsTbody">
+ <!-- Dinâmico -->
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- ========================================== -->
+ <!-- VIEW 5: EMPRÉSTIMOS ATRASADOS -->
+ <!-- ========================================== -->
+ <section class="view-section" id="view-delayed">
+ <div class="panel-card" style="border-top: 4px solid var(--color-red);">
+ <div class="panel-header">
+ <div style="display: flex; align-items: center; gap: 12px;">
+ <div class="alerts-icon-wrap">
+ <i class="fa-solid fa-triangle-exclamation"></i>
+ </div>
+ <div>
+ <h2 style="font-size: 18px; font-weight: 700; color: #b91c1c;">Empréstimos com Prazo de Devolução Vencido</h2>
+ <div style="font-size: 13px; color: var(--text-muted);">Equipamentos que já ultrapassaram a data prevista e requerem devolução imediata</div>
+ </div>
+ </div>
+ </div>
+
+ <div class="table-responsive" style="padding: 20px;">
+ <table class="custom-table">
+ <thead>
+ <tr>
+ <th>Responsável</th>
+ <th>Equipamentos Emprestados</th>
+ <th class="text-center">Data do Empréstimo</th>
+ <th class="text-center">Data Prevista</th>
+ <th class="text-center">Situação</th>
+ <th style="text-align: center;">Ações</th>
+ </tr>
+ </thead>
+ <tbody id="delayedTbody">
+ <!-- Dinâmico -->
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </section>
+
+ <!-- ========================================== -->
+ <!-- VIEW 6: HISTÓRICO DE EMPRÉSTIMOS -->
+ <!-- ========================================== -->
+ <section class="view-section" id="view-history">
+ <div class="panel-card">
+ <div class="panel-header">
+ <div>
+ <h2 style="font-size: 18px; font-weight: 700;">Histórico Completo de Empréstimos</h2>
+ <div style="font-size: 13px; color: var(--text-muted);">Registro permanente de todas as retiradas e devoluções realizadas</div>
+ </div>
+ </div>
+
+ <!-- Filtros de Histórico -->
+ <div style="padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; flex-wrap: wrap;">
+ <div style="flex: 1; min-width: 240px;">
+ <input type="text" id="historySearchInput" class="form-input" placeholder="Buscar por responsável, CPF, patrimônio ou série...">
+ </div>
+ <div style="width: 170px;">
+ <select id="historyTypeFilter" class="form-select">
+ <option value="all">Todas as Marcas</option>
+ <option value="lenovo">Lenovo</option>
+ <option value="multilaser">Multilaser (Ultra)</option>
+ </select>
+ </div>
+ <div style="width: 170px;">
+ <select id="historyStatusFilter" class="form-select">
+ <option value="all">Todos os Status</option>
+ <option value="ativo">Em Aberto</option>
+ <option value="devolvido">Devolvidos</option>
+ <option value="atrasado">Em Atraso</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="table-responsive" style="padding: 10px 20px 20px;">
+ <table class="custom-table">
+ <thead>
+ <tr>
+ <th>Tipo</th>
+ <th>Responsável</th>
+ <th>Equipamento(s)</th>
+ <th class="text-center">Data Empréstimo</th>
+ <th class="text-center">Devolução / Previsão</th>
+ <th class="text-center">Status</th>
+ <th style="text-align: center;">Ações</th>
+ </tr>
+ </thead>
+ <tbody id="historyTbody">
+ <!-- Dinâmico -->
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </section>
+
+ <!-- ========================================== -->
+ <!-- VIEW 7: IMPRIMIR RELATÓRIO -->
+ <!-- ========================================== -->
+ <section class="view-section" id="view-reports">
+ <div class="panel-card no-print">
+ <div class="panel-header">
+ <div>
+ <h2 style="font-size: 18px; font-weight: 700;">Gerador e Emissão de Relatórios</h2>
+ <div style="font-size: 13px; color: var(--text-muted);">Selecione as opções desejadas e clique em imprimir ou salvar em PDF</div>
+ </div>
+ <button class="btn-primary" onclick="App.printReport()" style="font-size: 14px; padding: 9px 20px;">
+ <i class="fa-solid fa-print"></i> Imprimir / Salvar PDF
+ </button>
+ </div>
+
+ <div style="padding: 24px 20px; background: #ffffff; display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+ <div style="flex: 1; min-width: 280px;">
+ <label class="form-label" style="font-weight: 600; margin-bottom: 6px;">Tipo de Relatório *</label>
+ <select id="reportTypeSelect" class="form-select" style="padding: 10px 14px; font-size: 14px;">
+ <option value="all">1. Todos os Equipamentos Cadastrados</option>
+ <option value="borrowed">2. Apenas os Equipamentos Emprestados</option>
+ <option value="available">3. Apenas os Equipamentos Disponíveis</option>
+ <option value="overdue">4. Empréstimos em Atraso</option>
+ </select>
+ </div>
+ <div style="flex: 1; min-width: 240px;">
+ <label class="form-label" style="font-weight: 600; margin-bottom: 6px;">Filtro por Marca / Modelo *</label>
+ <select id="reportBrandSelect" class="form-select" style="padding: 10px 14px; font-size: 14px;">
+ <option value="all">Ambos os Modelos (Lenovo + Multilaser)</option>
+ <option value="lenovo">Apenas Lenovo</option>
+ <option value="multilaser">Apenas Multilaser (Ultra)</option>
+ </select>
+ </div>
+
+ </div>
+ </div>
+
+ <!-- Área de Impressão do Relatório (Invisível na tela, gerada apenas no momento de imprimir/PDF) -->
+ <div id="reportPrintArea" class="report-print-area"></div>
+ </section>
+
+ </main>
+ </div>
+
+ <!-- ========================================== -->
+ <!-- MODAL: NOVO EMPRÉSTIMO LENOVO -->
+ <!-- ========================================== -->
+ <div class="modal-overlay" id="modalLoanLenovo">
+ <div class="modal-content wide">
+ <div class="modal-header">
+ <div class="modal-title">
+            <span class="badge-brand lenovo">Lenovo</span>
+            <span>Novo Empréstimo de Notebook Lenovo</span>
+          </div>
+ <button class="modal-close-btn">&times;</button>
+ </div>
+ <form id="formLoanLenovo" autocomplete="off">
+ <div class="modal-body">
+ <div class="form-grid">
+ <!-- Dados do Colaborador -->
+ <div class="form-group">
+ <label class="form-label">Nome Completo *</label>
+ <input type="text" id="lenovoBorrowerName" class="form-input" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">RG / CPF Nº *</label>
+ <input type="text" id="lenovoBorrowerDoc" class="form-input" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">E-mail Institucional</label>
+ <input type="email" id="lenovoBorrowerEmail" class="form-input" >
+ </div>
+ <div class="form-group">
+ <label class="form-label">Cargo / Função *</label>
+ <input type="text" id="lenovoBorrowerRole" class="form-input" required>
+ </div>
+
+ <!-- Seleção do Equipamento e Preenchimento Automático -->
+ <div class="form-group col-span-2">
+ <label class="form-label">Selecionar Equipamento Disponível *</label>
+ <div style="display: flex; gap: 8px;">
+ <input type="text" id="lenovoEquipSearch" class="form-input" style="width: 200px;" >
+ <select id="lenovoEquipSelect" class="form-select" style="flex: 1;" required>
+ <option value="">-- Selecione o Equipamento Lenovo --</option>
+ </select>
+ </div>
+ <input type="hidden" id="lenovoSelectedEquipId">
+ </div>
+
+ <!-- Card de Preenchimento Automático -->
+ <div class="form-group col-span-2">
+ <div class="auto-fill-card">
+ <span class="auto-fill-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Dados do Equipamento Selecionado (Preenchimento Automático)</span>
+ <div class="auto-fill-row">
+ <div><strong>Patrimônio:</strong> <span id="lenovoAutoPatrimony">-</span></div>
+ <div><strong>Modelo:</strong> <span id="lenovoAutoModel">-</span></div>
+ <div><strong>Nº de Série:</strong> <span id="lenovoAutoSerial">-</span></div>
+ <div><strong>Marca:</strong> <span id="lenovoAutoBrand">-</span></div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Acessórios e Prazos -->
+ <div class="form-group">
+ <label class="form-label">Acompanha Carregador / Fonte?</label>
+ <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+ <input type="checkbox" id="lenovoHasCharger" checked style="width: 18px; height: 18px; accent-color: var(--color-green);">
+ <label for="lenovoHasCharger" style="font-size: 13px; font-weight: 600; color: #15803d; cursor: pointer;">
+ Sim, vai com carregador/fonte original
+ </label>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Data do Empréstimo *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="lenovoLoanDate" class="form-input" required>
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-lenovoLoanDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('lenovoLoanDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('lenovoLoanDate', this.value)">
+ </div>
+ </div>
+
+ <div class="form-group col-span-2">
+ <label class="form-label">Regime de Devolução</label>
+ <div style="display: flex; gap: 20px; align-items: center; margin-top: 4px;">
+ <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+ <input type="radio" name="lenovoReturnType" id="lenovoReturnFixed" checked>
+ <strong>Fixo com a pessoa</strong> (sem prazo pré-determinado de retorno)
+ </label>
+ <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+ <input type="radio" name="lenovoReturnType" id="lenovoReturnCustom">
+ Definir prazo de retorno
+ </label>
+ </div>
+ </div>
+
+ <div class="form-group col-span-2" id="lenovoExpectedDateGroup" style="display: none;">
+ <label class="form-label">Data Prevista de Retorno *</label>
+ <input type="date" id="lenovoExpectedDate" class="form-input">
+ </div>
+
+ <div class="form-group col-span-2">
+ <label class="form-label">Observações Adicionais</label>
+ <input type="text" id="lenovoNotes" class="form-input" >
+ </div>
+
+ <div class="form-group col-span-2" style="background: #f0f9ff; padding: 10px 14px; border-radius: 8px; border: 1px solid #bae6fd;">
+ <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+ <input type="checkbox" id="lenovoGenerateTerm" checked style="width: 18px; height: 18px; accent-color: var(--sidebar-active);">
+ <strong>Gerar Termo de Responsabilidade imediatamente para imprimir ou salvar em PDF</strong>
+ </label>
+ </div>
+ </div>
+ </div>
+ <div class="modal-footer">
+ <button type="button" class="btn-secondary" onclick="App.closeModal('modalLoanLenovo')">Cancelar</button>
+ <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Concluir Empréstimo</button>
+ </div>
+ </form>
+ </div>
+ </div>
+
+ <!-- ========================================== -->
+ <!-- MODAL: NOVO EMPRÉSTIMO MULTILASER (ULTRA) -->
+ <!-- ========================================== -->
+ <div class="modal-overlay" id="modalLoanMulti">
+ <div class="modal-content wide">
+ <div class="modal-header">
+ <div class="modal-title">
+            <span class="badge-brand multi">Multilaser</span>
+            <span>Novo Empréstimo de Notebook Multilaser</span>
+          </div>
+ <button class="modal-close-btn">&times;</button>
+ </div>
+ <form id="formLoanMulti" autocomplete="off">
+ <div class="modal-body">
+ <div class="form-grid">
+ <div class="form-group">
+ <label class="form-label">Nome Completo do Responsável *</label>
+ <input type="text" id="multiBorrowerName" class="form-input" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Setor / Função / Telefone</label>
+ <input type="text" id="multiBorrowerRole" class="form-input" >
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Data e Horário do Empréstimo *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="multiLoanDate" class="form-input" required>
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-multiLoanDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('multiLoanDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('multiLoanDate', this.value)">
+ </div>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Data e Horário Previsto para Devolução *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="multiExpectedDate" class="form-input" placeholder="DD/MM/AAAA HH:MM" required>
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-multiExpectedDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('multiExpectedDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('multiExpectedDate', this.value)">
+ </div>
+ <small style="color: var(--text-muted); font-size: 11px;">Alerta automático quando vencer este horário!</small>
+ </div>
+
+ <!-- Seleção Múltipla de Equipamentos -->
+ <div class="form-group col-span-2">
+ <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+ <span>Equipamentos a Emprestar (Selecione 1 ou vários pelo ID) *</span>
+ <span id="multiSelectedCountBadge" class="badge-pill status-disponivel">0 selecionado(s)</span>
+ </label>
+
+ <!-- Tags Selecionadas -->
+ <div class="selected-tags-wrap" id="multiSelectedTags">
+ <!-- Chips via JS -->
+ </div>
+
+ <!-- Controles de Seleção Rápida -->
+ <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+ <input type="text" id="multiEquipSearch" class="form-input" style="flex: 1; min-width: 180px;" >
+ <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="App.selectAllAvailableMulti(5)">+ Selecionar 5</button>
+ <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="App.selectAllAvailableMulti(15)">+ Selecionar 15</button>
+ <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="App.selectAllAvailableMulti(999)">Selecionar Todos</button>
+ <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 12px; color: #ef4444;" onclick="App.clearAllSelectedMulti()">Limpar</button>
+ </div>
+
+ <!-- Lista com Checkboxes -->
+ <div class="multi-equip-list" id="multiEquipAvailableList" style="margin-top: 8px;">
+ <!-- Lista de Checkboxes via JS -->
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Acompanham Fontes / Carregadores?</label>
+ <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+ <input type="checkbox" id="multiHasCharger" checked style="width: 18px; height: 18px; accent-color: var(--color-green);">
+ <label for="multiHasCharger" style="font-size: 13px; font-weight: 600; color: #15803d; cursor: pointer;">
+ Sim, fontes inclusas
+ </label>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Observações</label>
+ <input type="text" id="multiNotes" class="form-input" >
+ </div>
+
+ <div class="form-group col-span-2" style="background: #eff6ff; padding: 10px 14px; border-radius: 8px; border: 1px solid #bfdbfe;">
+ <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+ <input type="checkbox" id="multiGenerateTerm" checked style="width: 18px; height: 18px; accent-color: var(--sidebar-active);">
+ <strong>Gerar Comprovante de Retirada em PDF / Impressão</strong>
+ </label>
+ </div>
+ </div>
+ </div>
+ <div class="modal-footer">
+ <button type="button" class="btn-secondary" onclick="App.closeModal('modalLoanMulti')">Cancelar</button>
+ <button type="submit" class="btn-primary" style="background-color: var(--multi-blue);"><i class="fa-solid fa-check"></i> Concluir Empréstimo</button>
+ </div>
+ </form>
+ </div>
+ </div>
+
+ <!-- ========================================== -->
+ <!-- MODAL: EDITAR DADOS DO EMPRÉSTIMO -->
+ <!-- ========================================== -->
+ <div class="modal-overlay" id="modalEditLoan">
+ <div class="modal-content wide">
+ <div class="modal-header">
+ <div class="modal-title" id="modalEditLoanTitle">
+ <i class="fa-solid fa-pen-to-square" style="color: #f59e0b;"></i>
+ <span>Editar Dados do Empréstimo</span>
+ </div>
+ <button class="modal-close-btn">&times;</button>
+ </div>
+ <form id="formEditLoan" autocomplete="off">
+ <div class="modal-body">
+ <input type="hidden" id="editLoanId">
+ <input type="hidden" id="editLoanType">
+ 
+ <div class="form-grid">
+ <!-- Dados do Solicitante / Servidor -->
+ <div class="form-group">
+ <label class="form-label">Nome Completo do Responsável *</label>
+ <input type="text" id="editLoanBorrowerName" class="form-input" required>
+ </div>
+
+ <!-- Campos exclusivos Lenovo -->
+ <div class="form-group edit-loan-lenovo-field">
+ <label class="form-label">RG / CPF Nº</label>
+ <input type="text" id="editLoanBorrowerDoc" class="form-input" >
+ </div>
+
+ <div class="form-group edit-loan-lenovo-field">
+ <label class="form-label">E-mail Institucional</label>
+ <input type="email" id="editLoanBorrowerEmail" class="form-input" >
+ </div>
+
+ <div class="form-group edit-loan-lenovo-field">
+ <label class="form-label">Cargo / Função</label>
+ <input type="text" id="editLoanBorrowerRole" class="form-input" >
+ </div>
+
+ <!-- Campos exclusivos Multilaser -->
+ <div class="form-group edit-loan-multi-field" style="display: none;">
+ <label class="form-label">Setor / Função / Telefone</label>
+ <input type="text" id="editLoanMultiRole" class="form-input" >
+ </div>
+
+ <!-- Data do Empréstimo -->
+ <div class="form-group">
+ <label class="form-label">Data e Horário do Empréstimo *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="editLoanDate" class="form-input" required>
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-editLoanDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('editLoanDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('editLoanDate', this.value)">
+ </div>
+ </div>
+
+ <!-- Regime de Devolução (Lenovo) -->
+ <div class="form-group col-span-2 edit-loan-lenovo-field">
+ <label class="form-label">Regime de Devolução</label>
+ <div style="display: flex; gap: 20px; align-items: center; margin-top: 4px;">
+ <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+ <input type="radio" name="editLoanReturnType" id="editLoanReturnFixed">
+ <strong>Fixo com a pessoa</strong> (sem prazo pré-determinado)
+ </label>
+ <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+ <input type="radio" name="editLoanReturnType" id="editLoanReturnCustom">
+ Definir prazo de retorno
+ </label>
+ </div>
+ </div>
+
+ <div class="form-group col-span-2 edit-loan-lenovo-field" id="editLoanExpectedDateGroup" style="display: none;">
+ <label class="form-label">Data Prevista de Retorno</label>
+ <input type="date" id="editLoanExpectedDate" class="form-input">
+ </div>
+
+ <!-- Previsão de Devolução (Multilaser) -->
+ <div class="form-group edit-loan-multi-field" style="display: none;">
+ <label class="form-label">Data / Hora Prevista para Devolução *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="editLoanMultiExpectedDate" class="form-input" placeholder="DD/MM/AAAA HH:MM">
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-editLoanMultiExpectedDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('editLoanMultiExpectedDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('editLoanMultiExpectedDate', this.value)">
+ </div>
+ </div>
+
+ <!-- Fonte / Carregador -->
+ <div class="form-group col-span-2">
+ <label class="form-label">Acessórios</label>
+ <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+ <input type="checkbox" id="editLoanHasCharger" style="width: 18px; height: 18px; accent-color: var(--color-green);">
+ <label for="editLoanHasCharger" style="font-size: 13px; font-weight: 600; color: #15803d; cursor: pointer;">
+ Acompanha carregador / fonte original
+ </label>
+ </div>
+ </div>
+
+ <!-- Observações -->
+ <div class="form-group col-span-2">
+ <label class="form-label">Observações</label>
+ <input type="text" id="editLoanNotes" class="form-input" >
+ </div>
+
+ <!-- Resumo dos Equipamentos Vinculados -->
+ <div class="form-group col-span-2">
+ <div class="auto-fill-card">
+ <span class="auto-fill-title"><i class="fa-solid fa-laptop"></i> Equipamento(s) Vinculado(s) a este Empréstimo</span>
+ <div id="editLoanEquipmentsDisplay" style="font-size: 13px; color: #1e293b; margin-top: 4px;"></div>
+ </div>
+ </div>
+ </div>
+ </div>
+ <div class="modal-footer">
+ <button type="button" class="btn-secondary" onclick="App.closeModal('modalEditLoan')">Cancelar</button>
+ <button type="submit" class="btn-primary" style="background-color: #d97706;"><i class="fa-solid fa-floppy-disk"></i> Salvar Alterações</button>
+ </div>
+ </form>
+ </div>
+ </div>
+
+ <!-- ========================================== -->
+ <!-- MODAL: CADASTRAR / EDITAR EQUIPAMENTO -->
+ <!-- ========================================== -->
+ <div class="modal-overlay" id="modalEquip">
+ <div class="modal-content wide">
+ <div class="modal-header">
+ <div class="modal-title" id="modalEquipTitle">Cadastrar Novo Equipamento</div>
+ <button class="modal-close-btn">&times;</button>
+ </div>
+ <form id="formEquip" autocomplete="off">
+ <div class="modal-body">
+ <input type="hidden" id="equipEditId">
+
+          <!-- Banner Informativo quando equipamento estiver emprestado na edicao -->
+          <div id="equipEditLoanBanner" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1e40af; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-circle-info" style="font-size: 18px; color: #2563eb;"></i>
+            <div>
+              <strong>Equipamento Emprestado:</strong> Atualmente em posse de <span id="equipEditLoanBorrower" style="font-weight: 700; color: #1e3a8a;"></span>. As informações do empréstimo ativo serão mantidas ao salvar.
+            </div>
+          </div>
+ <div class="form-grid">
+ <div class="form-group">
+ <label class="form-label">Marca *</label>
+ <select id="equipBrandSelect" class="form-select" required onchange="App.handleEquipBrandChange()">
+ <option value="Lenovo">Lenovo</option>
+ <option value="Multilaser (Ultra)">Multilaser (Ultra)</option>
+ </select>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Modelo do Equipamento *</label>
+ <input type="text" id="equipModelInput" class="form-input" required>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">ID / Patrimônio *</label>
+ <input type="text" id="equipPatrimonyInput" class="form-input" required>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Número de Série *</label>
+ <input type="text" id="equipSerialInput" class="form-input" required>
+ <small id="equipSerialFeedback" style="display: none; color: #ef4444; font-size: 11px; margin-top: 2px; font-weight: 600;"></small>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label" id="modalEquipStatusLabel">Status Inicial</label>
+ <select id="equipStatusSelect" class="form-select" onchange="App.handleEquipStatusChange()">
+ <option value="disponivel">Disponível em Estoque</option>
+ <option value="emprestado">Emprestado</option>
+ <option value="manutencao">Em Manutenção</option>
+ </select>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Observações / Acessórios</label>
+ <input type="text" id="equipNotesInput" class="form-input" >
+ </div>
+ </div>
+
+ <!-- SEÇÃO DINÂMICA: DADOS DO EMPRÉSTIMO (QUANDO STATUS FOR EMPRESTADO) -->
+ <div id="newEquipLoanSection" style="display: none; margin-top: 20px; padding-top: 18px; border-top: 2px dashed #cbd5e1;">
+ 
+ <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+ <div style="display: flex; align-items: center; gap: 8px;">
+ <span id="newEquipLoanBrandBadge" class="badge-brand lenovo">Lenovo</span>
+ <strong style="font-size: 14px; color: var(--text-dark);">Dados do Empréstimo Inicial</strong>
+ </div>
+ <small style="color: var(--text-muted);">Preencha para vincular o responsável imediatamente</small>
+ </div>
+
+ <!-- CAMPOS PARA LENOVO -->
+ <div id="newEquipLenovoFields" class="form-grid">
+ <div class="form-group">
+ <label class="form-label">Nome Completo do Responsável *</label>
+ <input type="text" id="newEquipLenovoBorrowerName" class="form-input" >
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">RG / CPF Nº</label>
+ <input type="text" id="newEquipLenovoBorrowerDoc" class="form-input" >
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">E-mail Institucional</label>
+ <input type="email" id="newEquipLenovoBorrowerEmail" class="form-input" >
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Cargo / Função</label>
+ <input type="text" id="newEquipLenovoBorrowerRole" class="form-input" >
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Data do Empréstimo *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="newEquipLenovoLoanDate" class="form-input">
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-newEquipLenovoLoanDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('newEquipLenovoLoanDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('newEquipLenovoLoanDate', this.value)">
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Acompanha Carregador / Fonte?</label>
+ <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+ <input type="checkbox" id="newEquipLenovoHasCharger" checked style="width: 18px; height: 18px; accent-color: var(--color-green);">
+ <label for="newEquipLenovoHasCharger" style="font-size: 13px; font-weight: 600; color: #15803d; cursor: pointer;">
+ <i class="fa-solid fa-plug"></i> Sim, carregador/fonte original entregue
+ </label>
+ </div>
+ </div>
+
+ <div class="form-group col-span-2">
+ <label class="form-label">Regime de Devolução</label>
+ <div style="display: flex; gap: 20px; align-items: center; margin-top: 4px;">
+ <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+ <input type="radio" name="newEquipLenovoReturnType" id="newEquipLenovoReturnFixed" checked onchange="document.getElementById('newEquipLenovoExpectedGroup').style.display = 'none'">
+ <strong>Fixo com a pessoa</strong> (sem prazo pré-determinado de retorno)
+ </label>
+ <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+ <input type="radio" name="newEquipLenovoReturnType" id="newEquipLenovoReturnCustom" onchange="document.getElementById('newEquipLenovoExpectedGroup').style.display = 'block'">
+ Definir prazo de retorno
+ </label>
+ </div>
+ </div>
+
+ <div class="form-group col-span-2" id="newEquipLenovoExpectedGroup" style="display: none;">
+ <label class="form-label">Data Prevista de Retorno</label>
+ <input type="date" id="newEquipLenovoExpectedDate" class="form-input">
+ </div>
+
+ <div class="form-group col-span-2">
+ <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 14px; border-radius: 8px;">
+ <input type="checkbox" id="newEquipLenovoGenerateTerm" checked style="width: 16px; height: 16px; accent-color: var(--sidebar-active);">
+ <span style="font-weight: 600; color: #166534;"><i class="fa-solid fa-file-pdf"></i> Gerar Termo Oficial de Responsabilidade em PDF / Impressão</span>
+ </label>
+ </div>
+ </div>
+
+ <!-- CAMPOS PARA MULTILASER -->
+ <div id="newEquipMultiFields" class="form-grid" style="display: none;">
+ <div class="form-group">
+ <label class="form-label">Nome Completo do Responsável *</label>
+ <input type="text" id="newEquipMultiBorrowerName" class="form-input" >
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Setor / Função / Telefone</label>
+ <input type="text" id="newEquipMultiBorrowerRole" class="form-input" >
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Data e Horário do Empréstimo *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="newEquipMultiLoanDate" class="form-input">
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-newEquipMultiLoanDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('newEquipMultiLoanDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('newEquipMultiLoanDate', this.value)">
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Data e Horário Previsto para Devolução *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="newEquipMultiExpectedDate" class="form-input" placeholder="DD/MM/AAAA HH:MM">
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-newEquipMultiExpectedDate" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('newEquipMultiExpectedDate', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('newEquipMultiExpectedDate', this.value)">
+ </div>
+ <small style="color: var(--text-muted); font-size: 11px;">Alerta automático quando vencer este horário!</small>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Acompanham Fontes / Carregadores?</label>
+ <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+ <input type="checkbox" id="newEquipMultiHasCharger" checked style="width: 18px; height: 18px; accent-color: var(--color-green);">
+ <label for="newEquipMultiHasCharger" style="font-size: 13px; font-weight: 600; color: #15803d; cursor: pointer;">
+ <i class="fa-solid fa-plug"></i> Sim, fontes inclusas
+ </label>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Observações do Empréstimo</label>
+ <input type="text" id="newEquipMultiNotes" class="form-input" >
+ </div>
+
+ <div class="form-group col-span-2">
+ <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 14px; border-radius: 8px;">
+ <input type="checkbox" id="newEquipMultiGenerateTerm" checked style="width: 16px; height: 16px; accent-color: var(--multi-blue);">
+ <span style="font-weight: 600; color: #1e40af;"><i class="fa-solid fa-file-pdf"></i> Gerar Comprovante de Retirada em PDF / Impressão</span>
+ </label>
+ </div>
+ </div>
+
+ </div>
+ </div>
+ <div class="modal-footer">
+ <button type="button" class="btn-secondary" onclick="App.closeModal('modalEquip')">Cancelar</button>
+ <button type="submit" class="btn-primary"><i class="fa-solid fa-floppy-disk"></i> Salvar Equipamento</button>
+ </div>
+ </form>
+ </div>
+ </div>
+
+ <!-- ========================================== -->
+ <!-- MODAL: DEVOLUÇÃO DE EQUIPAMENTO -->
+ <!-- ========================================== -->
+ <div class="modal-overlay" id="modalReturnConfirm">
+ <div class="modal-content">
+ <div class="modal-header">
+ <div class="modal-title" style="color: var(--color-green);">
+ <i class="fa-solid fa-circle-check"></i> Devolver ao Estoque
+ </div>
+ <button class="modal-close-btn">&times;</button>
+ </div>
+ <form id="formReturnConfirm" autocomplete="off">
+ <div class="modal-body">
+ <input type="hidden" id="returnLoanId">
+ <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+ <div><strong>Responsável:</strong> <span id="returnBorrowerDisplay">-</span></div>
+ <div style="margin-top: 4px;"><strong>Data do Empréstimo:</strong> <span id="returnLoanDateDisplay">-</span></div>
+ <div style="margin-top: 8px;"><strong>Equipamentos a Retornar:</strong></div>
+ <div id="returnItemsDisplay" style="margin-top: 4px; font-size: 13px; color: #1e293b;"></div>
+ </div>
+
+ <div class="form-group" style="margin-bottom: 14px;">
+ <label class="form-label">Data e Hora da Devolução *</label>
+ <div class="input-with-calendar">
+ <input type="text" id="returnDateInput" class="form-input" required>
+ <span class="calendar-icon-addon" title="Selecionar data no calendário">
+ <i class="fa-regular fa-calendar-days"></i>
+ </span>
+ <input type="date" id="picker-returnDateInput" class="calendar-native-input" tabindex="-1" aria-hidden="true" title="Clique para abrir o calendário" onclick="App.syncDatePickerFromText('returnDateInput', this.id); try{this.showPicker();}catch(e){}" onchange="App.onCalendarDateSelected('returnDateInput', this.value)">
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Observações do Retorno (Estado de Conservação)</label>
+ <textarea id="returnNotesInput" class="form-textarea" rows="2" ></textarea>
+ </div>
+ </div>
+ <div class="modal-footer">
+ <button type="button" class="btn-secondary" onclick="App.closeModal('modalReturnConfirm')">Cancelar</button>
+ <button type="submit" class="btn-primary" style="background-color: var(--color-green);"><i class="fa-solid fa-check"></i> Confirmar Devolução</button>
+ </div>
+ </form>
+ </div>
+ </div>
+
+ <!-- ========================================== -->
+ <!-- MODAL: TERMO OFICIAL & COMPROVANTE -->
+ <!-- ========================================== -->
+ <div class="modal-overlay print-active" id="modalTermView">
+ <div class="modal-content wide" style="max-width: 900px;">
+ <div class="modal-header no-print">
+ <div class="modal-title">
+ <i class="fa-solid fa-file-contract"></i> Visualização do Termo Oficial
+ </div>
+ <div>
+ <button class="btn-primary" style="padding: 6px 14px; font-size: 12px; margin-right: 8px;" onclick="App.printCurrentDocument()">
+ <i class="fa-solid fa-print"></i> Imprimir / Salvar PDF
+ </button>
+ <button class="modal-close-btn">&times;</button>
+ </div>
+ </div>
+ <div class="modal-body" style="padding: 0; background: #fff;">
+ <div id="termModalDocument">
+ <!-- Conteúdo timbrado via JS -->
+ </div>
+ </div>
+ <div class="modal-footer no-print">
+ <button type="button" class="btn-secondary" onclick="App.closeModal('modalTermView')">Fechar</button>
+ <button type="button" class="btn-primary" onclick="App.printCurrentDocument()"><i class="fa-solid fa-print"></i> Imprimir</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- ========================================== -->
+ <!-- MODAL: BACKUP E RESTAURAÇÃO DE DADOS -->
+ <!-- ========================================== -->
+ <div class="modal-overlay" id="modalBackup">
+ <div class="modal-content">
+ <div class="modal-header">
+ <div class="modal-title">
+ <i class="fa-solid fa-database"></i> Gerenciamento de Backup e Dados
+ </div>
+ <button class="modal-close-btn">&times;</button>
+ </div>
+ <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+ <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+ <strong style="font-size: 14px;">1. Exportar Backup</strong>
+ <p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 10px;">
+ Baixe um arquivo <code>.json</code> completo com todos os equipamentos, empréstimos e histórico cadastrados.
+ </p>
+ <button class="btn-primary" onclick="App.exportBackupFile()">
+ <i class="fa-solid fa-download"></i> Baixar Arquivo de Backup
+ </button>
+ </div>
+
+ <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+ <strong style="font-size: 14px;">2. Restaurar de um Arquivo</strong>
+ <p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 10px;">
+ Selecione um arquivo de backup <code>.json</code> previamente salvo para restaurar.
+ </p>
+ <input type="file" id="backupFileInput" accept=".json" onchange="App.importBackupFile(event)" style="font-size: 13px;">
+ </div>
+
+ <div style="background: #fff1f2; padding: 14px; border-radius: 8px; border: 1px solid #fecaca;">
+            <strong style="font-size: 14px; color: #991b1b;">3. Zerar Sistema (Limpar Todos os Equipamentos)</strong>
+            <p style="font-size: 12px; color: #b91c1c; margin: 6px 0 10px;">
+              Exclui todos os equipamentos e empréstimos cadastrados, deixando o sistema completamente limpo e pronto para novos cadastros reais.
+            </p>
+            <button class="btn-secondary" style="border-color: #fca5a5; color: #b91c1c; background: #fff;" onclick="App.clearAllDatabase()">
+              <i class="fa-solid fa-trash-can"></i> Zerar Todos os Equipamentos
+            </button>
+          </div>
+ </div>
+ <div class="modal-footer">
+ <button type="button" class="btn-secondary" onclick="App.closeModal('modalBackup')">Fechar</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- Scripts -->
+ <script src="js/storage.js"></script>
+ <script src="js/app.js"></script>
+</body>
+</html>
