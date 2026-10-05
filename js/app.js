@@ -120,8 +120,8 @@ const App = {
     if (cleaned.includes('@')) {
       return cleaned;
     }
-    if (cleaned === 'vinicius') {
-      return 'vinicius@ure.local';
+    if (cleaned === 'vinicius' || cleaned === 'vinícius') {
+      return 'vinicius.ctc1129@gmail.com';
     }
     if (cleaned === 'setec') {
       return 'setec@ure.local';
@@ -213,8 +213,17 @@ const App = {
     if (btnSubmit) btnSubmit.disabled = true;
 
     try {
-      const email = this.resolveEmail(userVal);
-      await fbAuth.signInWithEmailAndPassword(email, pwdVal);
+      let email = this.resolveEmail(userVal);
+      try {
+        await fbAuth.signInWithEmailAndPassword(email, pwdVal);
+      } catch (firstErr) {
+        // Se falhar em vinicius.ctc1129@gmail.com por usuário não encontrado, tenta vinicius@ure.local como alternativa
+        if (firstErr.code === 'auth/user-not-found' && email === 'vinicius.ctc1129@gmail.com') {
+          await fbAuth.signInWithEmailAndPassword('vinicius@ure.local', pwdVal);
+        } else {
+          throw firstErr;
+        }
+      }
       // Login com sucesso, onAuthStateChanged cuidará do redirecionamento
       userInput.value = '';
       pwdInput.value = '';

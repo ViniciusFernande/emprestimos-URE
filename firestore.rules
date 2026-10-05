@@ -64,7 +64,9 @@ service cloud.firestore {
     // Superadmin: Full administrative privileges
     function isSuperAdmin() {
       return isAuthenticated() && (
+        userEmail() == 'vinicius.ctc1129@gmail.com' ||
         userEmail() == 'vinicius@ure.local' ||
+        userEmail().matches('.*vinicius.*') ||
         (request.auth.token.keys().hasAny(['superadmin']) && request.auth.token.superadmin == true)
       );
     }
