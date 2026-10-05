@@ -90,14 +90,13 @@ const App = {
 
         if (loginOverlay) loginOverlay.style.display = 'none';
         if (userProfile) userProfile.style.display = 'flex';
+        
+        const initial = (this.currentUser.name || 'U').charAt(0).toUpperCase();
+        const initialEl = document.getElementById('headerUserInitial');
+        const dropdownInitialEl = document.getElementById('dropdownUserInitial');
+        if (initialEl) initialEl.textContent = initial;
+        if (dropdownInitialEl) dropdownInitialEl.textContent = initial;
         if (userNameEl) userNameEl.textContent = this.currentUser.name;
-        if (userBadgeEl) {
-          userBadgeEl.textContent = this.currentUser.title;
-          userBadgeEl.className = 'user-badge ' + this.currentUser.badgeClass;
-        }
-        if (userAvatarEl) {
-          userAvatarEl.innerHTML = `<i class="${this.currentUser.avatarIcon}"></i>`;
-        }
 
         // Inicia sincronização do Firestore
         StorageService.initFirestoreSync(() => {
@@ -116,19 +115,30 @@ const App = {
   },
 
   resolveEmail(usernameOrEmail) {
-    const cleaned = (usernameOrEmail || '').trim().toLowerCase();
+    if (!usernameOrEmail) return '';
+    const cleaned = String(usernameOrEmail).trim().toLowerCase();
+    // Normaliza removendo acentos (ex: Vinícius vira vinicius)
+    const normalized = cleaned.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
     if (cleaned.includes('@')) {
       return cleaned;
     }
-    if (cleaned === 'vinicius' || cleaned === 'vinícius') {
+
+    // 1. Vinicius (Administrador Total)
+    if (normalized.includes('vinicius') || normalized.includes('ctc1129')) {
       return 'vinicius.ctc1129@gmail.com';
     }
-    if (cleaned === 'setec') {
+
+    // 2. Setec
+    if (normalized.includes('setec')) {
       return 'setec@ure.local';
     }
-    if (cleaned === 'ure sorocaba' || cleaned === 'uresorocaba' || cleaned === 'ure') {
+
+    // 3. URE Sorocaba
+    if (normalized.includes('ure') || normalized.includes('sorocaba')) {
       return 'ure.sorocaba@ure.local';
     }
+
     return cleaned + '@ure.local';
   },
 
@@ -186,7 +196,10 @@ const App = {
   },
 
   async handleLogin(event) {
-    event.preventDefault();
+    if (event) {
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+    }
     const userInput = document.getElementById('loginUsername');
     const pwdInput = document.getElementById('loginPassword');
     const errorMsg = document.getElementById('loginErrorMsg');
@@ -195,7 +208,7 @@ const App = {
     const btnSpinner = document.getElementById('btnLoginSpinner');
     const btnSubmit = document.getElementById('btnLoginSubmit');
 
-    if (!userInput || !pwdInput) return;
+    if (!userInput || !pwdInput) return false;
     const userVal = userInput.value.trim();
     const pwdVal = pwdInput.value;
 
@@ -204,7 +217,7 @@ const App = {
         errorText.textContent = 'Por favor, preencha o usuário e a senha.';
         errorMsg.style.display = 'flex';
       }
-      return;
+      return false;
     }
 
     if (errorMsg) errorMsg.style.display = 'none';
@@ -213,24 +226,22 @@ const App = {
     if (btnSubmit) btnSubmit.disabled = true;
 
     try {
-      let email = this.resolveEmail(userVal);
+      const email = this.resolveEmail(userVal);
       try {
         await fbAuth.signInWithEmailAndPassword(email, pwdVal);
       } catch (firstErr) {
-        // Se falhar em vinicius.ctc1129@gmail.com por usuário não encontrado, tenta vinicius@ure.local como alternativa
-        if (firstErr.code === 'auth/user-not-found' && email === 'vinicius.ctc1129@gmail.com') {
+        if (email === 'vinicius.ctc1129@gmail.com') {
           await fbAuth.signInWithEmailAndPassword('vinicius@ure.local', pwdVal);
         } else {
           throw firstErr;
         }
       }
-      // Login com sucesso, onAuthStateChanged cuidará do redirecionamento
       userInput.value = '';
       pwdInput.value = '';
     } catch (err) {
       console.error('Erro de autenticação:', err);
       let msg = 'Usuário ou senha incorretos.';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
         msg = 'Usuário ou senha incorretos. Verifique suas credenciais.';
       } else if (err.code === 'auth/network-request-failed') {
         msg = 'Falha de conexão com o Firebase. Verifique sua internet.';
@@ -246,9 +257,10 @@ const App = {
       if (btnSpinner) btnSpinner.style.display = 'none';
       if (btnSubmit) btnSubmit.disabled = false;
     }
+    return false;
   },
 
-  async logout() {
+async logout() {
     if (confirm('Deseja realmente sair do sistema?')) {
       try {
         await fbAuth.signOut();
@@ -2433,6 +2445,13 @@ const App = {
   },
 
   setupEventListeners() {
+
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('headerUserProfile');
+      if (wrapper && !wrapper.contains(e.target)) {
+        this.closeUserDropdown();
+      }
+    });
     // Validação em tempo real de número de série duplicado
     const equipSerialEl = document.getElementById('equipSerialInput');
     if (equipSerialEl) {
