@@ -1,4 +1,4 @@
-var StorageService = window.StorageService || {};
+﻿var StorageService = window.StorageService || {};
 /**
  * URE SOROCABA - Controle de Empréstimos de Equipamentos
  * Módulo de Armazenamento e Persistência Local
@@ -352,18 +352,22 @@ window.StorageService = {
   },
 
   saveEquipment(item) {
+    if (!item) return null;
+
+    // Sanitiza item removendo qualquer chave undefined para nunca quebrar o Firestore
+    const cleanItem = {};
+    Object.keys(item).forEach(key => {
+      if (item[key] !== undefined) {
+        cleanItem[key] = item[key];
+      }
+    });
+    item = cleanItem;
+
     const list = this.getEquipmentList();
     const index = list.findIndex(e => e.id === item.id);
     if (index >= 0) {
       const existing = list[index];
-      const cleanItem = {};
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined) {
-          cleanItem[key] = item[key];
-        }
-      });
-
-      const updated = { ...existing, ...cleanItem };
+      const updated = { ...existing, ...item };
 
       // Garante que o responsavel e o ID do emprestimo nunca se percam se estiver emprestado
       if (updated.status === 'emprestado') {
@@ -378,7 +382,7 @@ window.StorageService = {
 
       list[index] = updated;
 
-      // Sincroniza dados nos empréstimos ativos vinculados
+      // Sincroniza dados nos emprestimos ativos vinculados
       try {
         const loans = this.getLoanList();
         let loansChanged = false;
@@ -399,7 +403,7 @@ window.StorageService = {
           this.saveLoanList(loans);
         }
       } catch (err) {
-        console.error('Erro ao sincronizar empréstimos vinculados:', err);
+        console.error('Erro ao sincronizar emprestimos vinculados:', err);
       }
     } else {
       if (!item.id) {
@@ -411,12 +415,22 @@ window.StorageService = {
       list.push(item);
     }
     this.saveEquipmentList(list);
+
+    // Salva no Firestore de forma segura (sem undefined)
     if (this.isFirestoreReady() && item && item.id) {
-      fbDb.collection('equipamentos').doc(item.id).set(item, { merge: true }).catch(err => {
-        console.warn('Erro ao salvar equipamento no Firestore:', err);
-      });
+      try {
+        const firestoreData = {};
+        Object.keys(item).forEach(k => {
+          if (item[k] !== undefined) firestoreData[k] = item[k];
+        });
+        fbDb.collection('equipamentos').doc(item.id).set(firestoreData, { merge: true }).catch(err => {
+          console.warn('Erro ao salvar equipamento no Firestore:', err);
+        });
+      } catch (err) {
+        console.warn('Excecao ao chamar Firestore set:', err);
+      }
     }
-    return list[index] || item;
+    return (index >= 0 ? list[index] : item);
   },
 
   deleteEquipment(id) {
