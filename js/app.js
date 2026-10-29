@@ -1,4 +1,4 @@
-/**
+﻿/**
  * URE SOROCABA - Controle de Empréstimos de Equipamentos
  * Lógica Principal da Aplicação (SPA Controller)
  */
@@ -2490,6 +2490,14 @@ async logout() {
     if (loginPwdInp) {
       loginPwdInp.onkeydown = (e) => {
         if (e.key === 'Enter') { e.preventDefault(); this.handleLogin(e); }
+      };
+    }
+
+    const btnCadEquip = document.getElementById('btnCadastrarEquipamento');
+    if (btnCadEquip) {
+      btnCadEquip.onclick = (e) => {
+        if (e) e.preventDefault();
+        this.openNewEquipModal('Lenovo');
       };
     }
 
