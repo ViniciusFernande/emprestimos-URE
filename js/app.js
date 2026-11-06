@@ -1311,6 +1311,8 @@ async logout() {
     const borrowerDoc = document.getElementById('lenovoBorrowerDoc').value.trim();
     const borrowerEmail = document.getElementById('lenovoBorrowerEmail').value.trim();
     const borrowerRole = document.getElementById('lenovoBorrowerRole').value.trim();
+    const borrowerPhone = document.getElementById('lenovoBorrowerPhone')?.value.trim() || '';
+    const borrowerSchool = document.getElementById('lenovoBorrowerSchool')?.value.trim() || '';
     const hasCharger = document.getElementById('lenovoHasCharger').checked;
     const loanDate = document.getElementById('lenovoLoanDate').value;
     const isFixed = document.getElementById('lenovoReturnFixed').checked;
@@ -1324,6 +1326,10 @@ async logout() {
       borrowerDoc,
       borrowerEmail,
       borrowerRole,
+      borrowerPhone,
+      borrowerSchool,
+            borrowerPhone,
+            borrowerSchool,
       equipmentIds: [eq.id],
       equipmentDetails: [{
         id: eq.id,
@@ -1537,6 +1543,10 @@ async logout() {
       document.getElementById('editLoanBorrowerDoc').value = loan.borrowerDoc || '';
       document.getElementById('editLoanBorrowerEmail').value = loan.borrowerEmail || '';
       document.getElementById('editLoanBorrowerRole').value = loan.borrowerRole || '';
+      const phoneEl = document.getElementById('editLoanBorrowerPhone');
+      if (phoneEl) phoneEl.value = loan.borrowerPhone || '';
+      const schoolEl = document.getElementById('editLoanBorrowerSchool');
+      if (schoolEl) schoolEl.value = loan.borrowerSchool || '';
 
       const isFixed = loan.isFixed !== false;
       document.getElementById('editLoanReturnFixed').checked = isFixed;
@@ -1603,12 +1613,16 @@ async logout() {
       const borrowerDoc = document.getElementById('editLoanBorrowerDoc').value.trim();
       const borrowerEmail = document.getElementById('editLoanBorrowerEmail').value.trim();
       const borrowerRole = document.getElementById('editLoanBorrowerRole').value.trim();
+      const borrowerPhone = document.getElementById('editLoanBorrowerPhone')?.value.trim() || '';
+      const borrowerSchool = document.getElementById('editLoanBorrowerSchool')?.value.trim() || '';
       const isFixed = document.getElementById('editLoanReturnFixed').checked;
       const expectedReturnDate = isFixed ? null : document.getElementById('editLoanExpectedDate').value;
 
       updatedData.borrowerDoc = borrowerDoc;
       updatedData.borrowerEmail = borrowerEmail;
       updatedData.borrowerRole = borrowerRole;
+      updatedData.borrowerPhone = borrowerPhone;
+      updatedData.borrowerSchool = borrowerSchool;
       updatedData.isFixed = isFixed;
       updatedData.expectedReturnDate = expectedReturnDate;
     } else {
@@ -1616,6 +1630,8 @@ async logout() {
       const expectedReturnDate = document.getElementById('editLoanMultiExpectedDate').value.trim();
 
       updatedData.borrowerRole = borrowerRole;
+      updatedData.borrowerPhone = borrowerPhone;
+      updatedData.borrowerSchool = borrowerSchool;
       updatedData.isFixed = false;
       updatedData.expectedReturnDate = expectedReturnDate;
     }
@@ -1742,6 +1758,8 @@ async logout() {
       'newEquipLenovoBorrowerDoc',
       'newEquipLenovoBorrowerEmail',
       'newEquipLenovoBorrowerRole',
+        'newEquipLenovoBorrowerPhone',
+        'newEquipLenovoBorrowerSchool',
       'newEquipLenovoExpectedDate',
       'newEquipMultiBorrowerName',
       'newEquipMultiBorrowerRole',
@@ -1902,6 +1920,10 @@ async logout() {
           if (em) em.value = loan.borrowerEmail || '';
           const r = document.getElementById('newEquipLenovoBorrowerRole');
           if (r) r.value = loan.borrowerRole || '';
+            const p = document.getElementById('newEquipLenovoBorrowerPhone');
+            if (p) p.value = loan.borrowerPhone || '';
+            const sc = document.getElementById('newEquipLenovoBorrowerSchool');
+            if (sc) sc.value = loan.borrowerSchool || '';
           const ld = document.getElementById('newEquipLenovoLoanDate');
           if (ld) ld.value = loan.loanDate || '';
           const chk = document.getElementById('newEquipLenovoHasCharger');
@@ -2015,6 +2037,8 @@ async logout() {
           bDoc = document.getElementById('newEquipLenovoBorrowerDoc')?.value.trim() || '';
           bEmail = document.getElementById('newEquipLenovoBorrowerEmail')?.value.trim() || '';
           bRole = document.getElementById('newEquipLenovoBorrowerRole')?.value.trim() || '';
+          const borrowerPhone = document.getElementById('newEquipLenovoBorrowerPhone')?.value.trim() || '';
+          const borrowerSchool = document.getElementById('newEquipLenovoBorrowerSchool')?.value.trim() || '';
           loanDate = document.getElementById('newEquipLenovoLoanDate')?.value.trim() || this.getTodayFormattedDate();
           isFixed = document.getElementById('newEquipLenovoReturnFixed')?.checked !== false;
           expectedReturnDate = isFixed ? null : (document.getElementById('newEquipLenovoExpectedDate')?.value || null);
@@ -2140,6 +2164,8 @@ async logout() {
         const borrowerDoc = document.getElementById('newEquipLenovoBorrowerDoc')?.value.trim() || '';
         const borrowerEmail = document.getElementById('newEquipLenovoBorrowerEmail')?.value.trim() || '';
         const borrowerRole = document.getElementById('newEquipLenovoBorrowerRole')?.value.trim() || '';
+          const borrowerPhone = document.getElementById('newEquipLenovoBorrowerPhone')?.value.trim() || '';
+          const borrowerSchool = document.getElementById('newEquipLenovoBorrowerSchool')?.value.trim() || '';
         const loanDate = document.getElementById('newEquipLenovoLoanDate')?.value.trim() || this.getTodayFormattedDate();
         const isFixed = document.getElementById('newEquipLenovoReturnFixed')?.checked !== false;
         const expectedReturnDate = isFixed ? null : (document.getElementById('newEquipLenovoExpectedDate')?.value || null);
@@ -2158,6 +2184,8 @@ async logout() {
           borrowerDoc,
           borrowerEmail,
           borrowerRole,
+            borrowerPhone,
+            borrowerSchool,
           loanDate,
           isFixed,
           expectedReturnDate,
@@ -2436,7 +2464,7 @@ async logout() {
                 <strong>Cargo/ Função:</strong> <u>&nbsp;${role}&nbsp;</u>
               </div>
               <div style="flex: 1;">
-                <strong>RG / CPF Nº:</strong> ${docDisplay}
+                <strong>Telefone:</strong> <u>&nbsp;${phone}&nbsp;</u> &nbsp;&nbsp;&nbsp; <strong>RG / CPF:</strong> ${docDisplay}
               </div>
             </div>
           </div>
@@ -2775,6 +2803,40 @@ async logout() {
     }, 4000);
   },
 
+  maskPhone(input) {
+    if (!input) return;
+    let v = input.value.replace(/\D/g, "");
+    if (v.length > 11) v = v.slice(0, 11);
+
+    if (v.length === 0) {
+      input.value = "";
+      return;
+    }
+
+    if (v.length <= 2) {
+      input.value = "(" + v;
+      return;
+    }
+
+    const ddd = v.slice(0, 2);
+    const rest = v.slice(2);
+
+    // Se tem 11 digitos ou o primeiro digito do numero e 9 (celular SP: (XX) 9XXXX-XXXX)
+    if (v.length === 11 || (rest.length > 0 && rest[0] === "9")) {
+      if (rest.length <= 5) {
+        input.value = "(" + ddd + ") " + rest;
+      } else {
+        input.value = "(" + ddd + ") " + rest.slice(0, 5) + "-" + rest.slice(5);
+      }
+    } else {
+      // Padrao telefone fixo SP: 10 digitos (XX) XXXX-XXXX
+      if (rest.length <= 4) {
+        input.value = "(" + ddd + ") " + rest;
+      } else {
+        input.value = "(" + ddd + ") " + rest.slice(0, 4) + "-" + rest.slice(4);
+      }
+    }
+  },
   escapeHtml(str) {
     if (!str) return '';
     return String(str)

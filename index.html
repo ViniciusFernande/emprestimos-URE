@@ -731,6 +731,14 @@
  <label class="form-label">Cargo / Função *</label>
  <input type="text" id="lenovoBorrowerRole" class="form-input" required>
  </div>
+   <div class="form-group">
+   <label class="form-label">N&uacute;mero de Telefone (Celular / Fixo)</label>
+   <input type="text" id="lenovoBorrowerPhone" class="form-input" placeholder="(15) 99999-9999 ou (15) 3232-0000" maxlength="15" oninput="App.maskPhone(this)">
+   </div>
+   <div class="form-group">
+   <label class="form-label">Nome da Escola</label>
+   <input type="text" id="lenovoBorrowerSchool" class="form-input" placeholder="Nome da escola">
+   </div>
 
  <!-- Seleção do Equipamento e Preenchimento Automático -->
  <div class="form-group col-span-2">
@@ -962,6 +970,14 @@
  <label class="form-label">Cargo / Função</label>
  <input type="text" id="editLoanBorrowerRole" class="form-input" >
  </div>
+   <div class="form-group edit-loan-lenovo-field">
+   <label class="form-label">N&uacute;mero de Telefone (Celular / Fixo)</label>
+   <input type="text" id="editLoanBorrowerPhone" class="form-input" placeholder="(15) 99999-9999 ou (15) 3232-0000" maxlength="15" oninput="App.maskPhone(this)">
+   </div>
+   <div class="form-group edit-loan-lenovo-field">
+   <label class="form-label">Nome da Escola</label>
+   <input type="text" id="editLoanBorrowerSchool" class="form-input" placeholder="Nome da escola">
+   </div>
 
  <!-- Campos exclusivos Multilaser -->
  <div class="form-group edit-loan-multi-field" style="display: none;">
@@ -1139,6 +1155,14 @@
  <label class="form-label">Cargo / Função</label>
  <input type="text" id="newEquipLenovoBorrowerRole" class="form-input" >
  </div>
+   <div class="form-group">
+   <label class="form-label">N&uacute;mero de Telefone (Celular / Fixo)</label>
+   <input type="text" id="newEquipLenovoBorrowerPhone" class="form-input" placeholder="(15) 99999-9999 ou (15) 3232-0000" maxlength="15" oninput="App.maskPhone(this)">
+   </div>
+   <div class="form-group">
+   <label class="form-label">Nome da Escola</label>
+   <input type="text" id="newEquipLenovoBorrowerSchool" class="form-input" placeholder="Nome da escola">
+   </div>
 
  <div class="form-group">
  <label class="form-label">Data do Empréstimo *</label>
@@ -1380,8 +1404,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js?v=4.0"></script>
-  <script src="js/storage.js?v=4.0"></script>
- <script src="js/app.js?v=4.0"></script>
+  <script src="js/firebase-config.js?v=4.2"></script>
+  <script src="js/storage.js?v=4.2"></script>
+ <script src="js/app.js?v=4.2"></script>
 </body>
 </html>

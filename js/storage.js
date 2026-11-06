@@ -539,6 +539,8 @@ window.StorageService = {
         eq.status = 'disponivel';
         delete eq.currentBorrower;
         delete eq.currentLoanId;
+        delete eq.currentSchool;
+        delete eq.currentPhone;
         if (!affectedEquips.includes(eq)) affectedEquips.push(eq);
       };
 
