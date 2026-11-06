@@ -1,4 +1,4 @@
-﻿var StorageService = window.StorageService || {};
+var StorageService = window.StorageService || {};
 /**
  * URE SOROCABA - Controle de Empréstimos de Equipamentos
  * Módulo de Armazenamento e Persistência Local
@@ -646,8 +646,22 @@ window.StorageService = {
     const loans = this.getLoanList();
     const equipList = this.getEquipmentList();
 
-    const loan = loans.find(l => l.id === loanId);
-    if (!loan) return null;
+    let loan = loans.find(l => l.id === loanId);
+    if (!loan) {
+      loan = this.getActiveLoanForEquipment(loanId);
+    }
+    if (!loan) {
+      const eq = equipList.find(e => e.id === loanId || e.patrimony === loanId || (e.currentLoanId && e.currentLoanId === loanId));
+      if (eq) {
+        eq.status = 'disponivel';
+        delete eq.currentBorrower;
+        delete eq.currentLoanId;
+        this.saveEquipmentList(equipList);
+        this.saveEquipmentToFirestore(eq);
+        return { id: loanId, status: 'devolvido', equipmentDetails: [eq] };
+      }
+      return null;
+    }
 
     const today = new Date();
     const dStr = String(today.getDate()).padStart(2, '0') + '/' + 
@@ -682,6 +696,11 @@ window.StorageService = {
     equipList.forEach(e => {
       if (e.currentLoanId === loan.id) {
         freeEquip(e);
+      }
+      if (loan.borrowerName && e.currentBorrower === loan.borrowerName && e.status === 'emprestado') {
+        if (loan.equipmentDetails && loan.equipmentDetails.some(ed => ed.patrimony === e.patrimony || ed.serialNumber === e.serialNumber)) {
+          freeEquip(e);
+        }
       }
     });
 

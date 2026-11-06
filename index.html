@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
  <meta charset="UTF-8">
@@ -1267,7 +1267,7 @@
  </div>
  <button class="modal-close-btn">&times;</button>
  </div>
- <form id="formReturnConfirm" autocomplete="off">
+ <form id="formReturnConfirm" autocomplete="off" onsubmit="event.preventDefault(); App.submitReturnConfirm(event); return false;">
  <div class="modal-body">
  <input type="hidden" id="returnLoanId">
  <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
@@ -1295,7 +1295,7 @@
  </div>
  <div class="modal-footer">
  <button type="button" class="btn-secondary" onclick="App.closeModal('modalReturnConfirm')">Cancelar</button>
- <button type="submit" class="btn-primary" style="background-color: var(--color-green);"><i class="fa-solid fa-check"></i> Confirmar Devolução</button>
+ <button type="button" class="btn-primary" id="btnConfirmarDevolucao" style="background-color: var(--color-green);" onclick="App.submitReturnConfirm(event)"><i class="fa-solid fa-check"></i> Confirmar Devolução</button>
  </div>
  </form>
  </div>
@@ -1380,8 +1380,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js?v=3.7"></script>
-  <script src="js/storage.js?v=3.7"></script>
- <script src="js/app.js?v=3.7"></script>
+  <script src="js/firebase-config.js?v=3.9"></script>
+  <script src="js/storage.js?v=3.9"></script>
+ <script src="js/app.js?v=3.9"></script>
 </body>
 </html>

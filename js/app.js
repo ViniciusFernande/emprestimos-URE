@@ -1,4 +1,4 @@
-﻿/**
+/**
  * URE SOROCABA - Controle de Empréstimos de Equipamentos
  * Lógica Principal da Aplicação (SPA Controller)
  */
@@ -1631,41 +1631,78 @@ async logout() {
   },
 
   // Modal Devolução de Equipamento
+  // Modal DevoluÃ§Ã£o de Equipamento
   openReturnModal(loanId) {
-    const loan = StorageService.getLoanById(loanId) || StorageService.getActiveLoanForEquipment(loanId);
-    if (!loan) return;
+    let loan = StorageService.getLoanById(loanId) || StorageService.getActiveLoanForEquipment(loanId);
+    if (!loan) {
+      const equip = StorageService.getEquipmentList().find(e => e.id === loanId || e.patrimony === loanId);
+      if (equip) {
+        loan = StorageService.getActiveLoanForEquipment(equip) || StorageService.ensureActiveLoanForEquipment(equip);
+      }
+    }
+    if (!loan) {
+      alert('NÃ£o foi possÃ­vel localizar o emprÃ©stimo para este equipamento.');
+      return;
+    }
 
-    document.getElementById('returnLoanId').value = loan.id;
-    document.getElementById('returnBorrowerDisplay').textContent = loan.borrowerName;
-    document.getElementById('returnLoanDateDisplay').textContent = loan.loanDate;
+    const returnLoanIdEl = document.getElementById('returnLoanId');
+    if (returnLoanIdEl) returnLoanIdEl.value = loan.id;
+
+    const bNameEl = document.getElementById('returnBorrowerDisplay');
+    if (bNameEl) bNameEl.textContent = loan.borrowerName || '-';
+
+    const lDateEl = document.getElementById('returnLoanDateDisplay');
+    if (lDateEl) lDateEl.textContent = loan.loanDate || '-';
 
     let itemsStr = '';
-    if (loan.equipmentDetails) {
-      itemsStr = loan.equipmentDetails.map(e => `• ${e.patrimony} - ${e.model} (Série: ${e.serialNumber || '-'})`).join('<br>');
+    if (loan.equipmentDetails && loan.equipmentDetails.length > 0) {
+      itemsStr = loan.equipmentDetails.map(e => `â€¢ ${e.patrimony || '-'} - ${e.model || '-'} (SÃ©rie: ${e.serialNumber || '-'})`).join('<br>');
+    } else {
+      itemsStr = `â€¢ EmprÃ©stimo ID: ${loan.id}`;
     }
-    document.getElementById('returnItemsDisplay').innerHTML = itemsStr;
+    const itemsEl = document.getElementById('returnItemsDisplay');
+    if (itemsEl) itemsEl.innerHTML = itemsStr;
 
     const today = new Date();
     const dStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()} ${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
-    document.getElementById('returnDateInput').value = dStr;
-    document.getElementById('returnNotesInput').value = 'Equipamento conferido e devolvido ao estoque em boas condições.';
+    const retDateEl = document.getElementById('returnDateInput');
+    if (retDateEl) retDateEl.value = dStr;
+
+    const retNotesEl = document.getElementById('returnNotesInput');
+    if (retNotesEl) retNotesEl.value = 'Equipamento conferido e devolvido ao estoque em boas condiÃ§Ãµes.';
 
     this.syncDatePickerFromText('returnDateInput', 'picker-returnDateInput');
     this.openModal('modalReturnConfirm');
   },
 
   submitReturnConfirm(e) {
-    e.preventDefault();
-    const loanId = document.getElementById('returnLoanId').value;
-    const returnDate = document.getElementById('returnDateInput').value;
-    const returnNotes = document.getElementById('returnNotesInput').value;
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    try {
+      const loanId = document.getElementById('returnLoanId')?.value;
+      const returnDate = document.getElementById('returnDateInput')?.value;
+      const returnNotes = document.getElementById('returnNotesInput')?.value;
 
-    StorageService.returnLoan(loanId, returnDate, returnNotes);
-    this.closeModal('modalReturnConfirm');
-    this.refreshAll();
-    this.showToast('Devolução confirmada com sucesso! Equipamento(s) liberado(s) para o estoque.', 'success');
+      if (!loanId) {
+        alert('Identificador do emprÃ©stimo nÃ£o encontrado.');
+        return;
+      }
+
+      const res = StorageService.returnLoan(loanId, returnDate, returnNotes);
+      this.closeModal('modalReturnConfirm');
+      this.refreshAll();
+
+      const msg = 'DevoluÃ§Ã£o confirmada com sucesso! Equipamento liberado para o estoque.';
+      this.showToast(msg, 'success');
+      alert(msg);
+    } catch (err) {
+      console.error('Erro ao confirmar devoluÃ§Ã£o:', err);
+      alert('Erro ao confirmar devoluÃ§Ã£o: ' + (err.message || err));
+      this.showToast('Erro ao confirmar devoluÃ§Ã£o: ' + (err.message || err), 'error');
+    }
   },
-
   // Modal Cadastro e Edição de Equipamento
   getTodayFormattedDate() {
     const today = new Date();
@@ -2700,6 +2737,10 @@ async logout() {
     document.getElementById('formLoanLenovo')?.addEventListener('submit', (e) => this.submitLoanLenovo(e));
     document.getElementById('formLoanMulti')?.addEventListener('submit', (e) => this.submitLoanMultilaser(e));
     document.getElementById('formReturnConfirm')?.addEventListener('submit', (e) => this.submitReturnConfirm(e));
+    const btnRetConfirm = document.getElementById('btnConfirmarDevolucao');
+    if (btnRetConfirm) {
+      btnRetConfirm.addEventListener('click', (e) => this.submitReturnConfirm(e));
+    }
     document.getElementById('formEquip')?.addEventListener('submit', (e) => this.submitEquipForm(e));
 
     // Filtros de Equipamentos
