@@ -82,6 +82,7 @@ window.StorageService = {
     const checkInitial = () => {
       if (initialEquipsLoaded && initialLoansLoaded) {
         this.migrateLocalToFirestore();
+        this.syncEquipmentBorrowers();
         if (typeof onDataLoaded === 'function') onDataLoaded();
         if (window.App && typeof window.App.refreshAll === 'function') {
           window.App.refreshAll();
@@ -93,7 +94,12 @@ window.StorageService = {
     this._unsubEquips = fbDb.collection('equipamentos').onSnapshot(snapshot => {
       const list = [];
       snapshot.forEach(doc => {
-        list.push({ id: doc.id, ...doc.data() });
+        const eq = { id: doc.id, ...doc.data() };
+        if (eq.status !== 'emprestado') {
+          delete eq.currentBorrower;
+          delete eq.currentLoanId;
+        }
+        list.push(eq);
       });
 
       if (snapshot.size > 0 || initialEquipsLoaded) {
@@ -280,14 +286,53 @@ window.StorageService = {
       return loan;
     }
 
-    // Se o equipamento esta marcado como emprestado, mas nao ha emprestimo no historico,
-    // reconstroi o emprestimo ativo correspondente para habilitar acoes e termo
+    // Se o equipamento diz emprestado, mas nao ha emprestimo ativo:
+    // Verifica se ha algum emprestimo devolvido correspondente
+    const loans = this.getLoanList();
+    const cleanId = String(eq.id || '').trim().toLowerCase();
+    const cleanPat = String(eq.patrimony || '').trim().toLowerCase();
+    const cleanSerial = String(eq.serialNumber || '').trim().toLowerCase();
+
+    const returnedLoan = loans.find(l => {
+      if (l.status !== 'devolvido') return false;
+      if (eq.currentLoanId && l.id === eq.currentLoanId) return true;
+      if (Array.isArray(l.equipmentIds)) {
+        if (l.equipmentIds.some(id => String(id).trim().toLowerCase() === cleanId || String(id).trim().toLowerCase() === cleanPat)) return true;
+      }
+      if (Array.isArray(l.equipmentDetails)) {
+        if (l.equipmentDetails.some(ed => {
+          const edId = String(ed.id || '').trim().toLowerCase();
+          const edPat = String(ed.patrimony || '').trim().toLowerCase();
+          const edSerial = String(ed.serialNumber || '').trim().toLowerCase();
+          return (cleanId && edId === cleanId) || (cleanPat && edPat === cleanPat) || (cleanSerial && edSerial === cleanSerial);
+        })) return true;
+      }
+      return false;
+    });
+
+    if (returnedLoan) {
+      eq.status = 'disponivel';
+      delete eq.currentBorrower;
+      delete eq.currentLoanId;
+      this.saveEquipmentToFirestore(eq);
+      return null;
+    }
+
+    // Se nao ha nenhum emprestimo no historico, so cria se realmente houver responsavel preenchido
+    const borrower = (eq.currentBorrower && eq.currentBorrower.trim()) ? eq.currentBorrower.trim() : '';
+    if (!borrower || borrower === 'Servidor Responsavel') {
+      eq.status = 'disponivel';
+      delete eq.currentBorrower;
+      delete eq.currentLoanId;
+      this.saveEquipmentToFirestore(eq);
+      return null;
+    }
+
     const today = new Date();
     const dd = String(today.getDate()).padStart(2, '0');
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const yyyy = today.getFullYear();
     const dStr = dd + '/' + mm + '/' + yyyy;
-    const borrower = (eq.currentBorrower && eq.currentBorrower.trim()) ? eq.currentBorrower.trim() : 'Servidor Responsavel';
     const isLenovo = eq.brand && eq.brand.toLowerCase().includes('lenovo');
 
     const newLoan = this.createLoan({
@@ -320,6 +365,7 @@ window.StorageService = {
     try {
       const equipList = this.getEquipmentList();
       let changed = false;
+      const equipsToSync = [];
 
       equipList.forEach(eq => {
         if (eq.status === 'emprestado') {
@@ -328,23 +374,27 @@ window.StorageService = {
             if (eq.currentLoanId !== loan.id) {
               eq.currentLoanId = loan.id;
               changed = true;
+              if (!equipsToSync.includes(eq)) equipsToSync.push(eq);
             }
             if (loan.borrowerName && eq.currentBorrower !== loan.borrowerName) {
               eq.currentBorrower = loan.borrowerName;
               changed = true;
+              if (!equipsToSync.includes(eq)) equipsToSync.push(eq);
             }
           }
-        } else if (eq.status === 'disponivel') {
+        } else {
           if (eq.currentLoanId || eq.currentBorrower) {
             delete eq.currentLoanId;
             delete eq.currentBorrower;
             changed = true;
+            if (!equipsToSync.includes(eq)) equipsToSync.push(eq);
           }
         }
       });
 
       if (changed) {
         this.saveEquipmentList(equipList);
+        equipsToSync.forEach(eq => this.saveEquipmentToFirestore(eq));
       }
     } catch (e) {
       console.error('Erro ao sincronizar responsaveis dos equipamentos:', e);
@@ -354,7 +404,7 @@ window.StorageService = {
   saveEquipment(item) {
     if (!item) return null;
 
-    // Sanitiza item removendo qualquer chave undefined para nunca quebrar o Firestore
+    // Sanitiza item removendo qualquer chave undefined
     const cleanItem = {};
     Object.keys(item).forEach(key => {
       if (item[key] !== undefined) {
@@ -365,6 +415,8 @@ window.StorageService = {
 
     const list = this.getEquipmentList();
     const index = list.findIndex(e => e.id === item.id);
+    let toSave = item;
+
     if (index >= 0) {
       const existing = list[index];
       const updated = { ...existing, ...item };
@@ -378,9 +430,14 @@ window.StorageService = {
             if (!updated.currentBorrower && activeLoan.borrowerName) updated.currentBorrower = activeLoan.borrowerName;
           }
         }
+      } else {
+        // Se status nao for emprestado, remove campos de emprestimo ativo
+        delete updated.currentBorrower;
+        delete updated.currentLoanId;
       }
 
       list[index] = updated;
+      toSave = updated;
 
       // Sincroniza dados nos emprestimos ativos vinculados
       try {
@@ -395,6 +452,7 @@ window.StorageService = {
                 ed.patrimony = updated.patrimony;
                 ed.serialNumber = updated.serialNumber;
                 loansChanged = true;
+                this.saveLoanToFirestore(loan);
               }
             });
           }
@@ -412,24 +470,17 @@ window.StorageService = {
       if (!item.status) {
         item.status = 'disponivel';
       }
-      list.push(item);
-    }
-    this.saveEquipmentList(list);
-
-    // Salva no Firestore de forma segura (sem undefined)
-    if (this.isFirestoreReady() && item && item.id) {
-      try {
-        const firestoreData = {};
-        Object.keys(item).forEach(k => {
-          if (item[k] !== undefined) firestoreData[k] = item[k];
-        });
-        fbDb.collection('equipamentos').doc(item.id).set(firestoreData, { merge: true }).catch(err => {
-          console.warn('Erro ao salvar equipamento no Firestore:', err);
-        });
-      } catch (err) {
-        console.warn('Excecao ao chamar Firestore set:', err);
+      if (item.status !== 'emprestado') {
+        delete item.currentBorrower;
+        delete item.currentLoanId;
       }
+      list.push(item);
+      toSave = item;
     }
+
+    this.saveEquipmentList(list);
+    this.saveEquipmentToFirestore(toSave);
+
     return (index >= 0 ? list[index] : item);
   },
 
@@ -449,25 +500,45 @@ window.StorageService = {
     const loan = list.find(l => l.id === id);
     if (!loan) return;
 
-    // Se o empréstimo não foi devolvido, libera os equipamentos associados
-    if (loan.status !== 'devolvido' && Array.isArray(loan.equipmentIds)) {
+    // Se o emprestimo excluido nao estava devolvido, libera os equipamentos associados
+    if (loan.status !== 'devolvido') {
       const equipList = this.getEquipmentList();
-      loan.equipmentIds.forEach(eqId => {
-        const eq = equipList.find(e => e.id === eqId || e.patrimony === eqId);
-        if (eq && (eq.currentLoanId === id || eq.currentBorrower === loan.borrowerName)) {
-          eq.status = 'disponivel';
-          delete eq.currentBorrower;
-          delete eq.currentLoanId;
+      const affectedEquips = [];
+      const freeEquip = (eq) => {
+        if (!eq) return;
+        eq.status = 'disponivel';
+        delete eq.currentBorrower;
+        delete eq.currentLoanId;
+        if (!affectedEquips.includes(eq)) affectedEquips.push(eq);
+      };
+
+      if (Array.isArray(loan.equipmentIds)) {
+        loan.equipmentIds.forEach(eqId => {
+          freeEquip(equipList.find(e => e.id === eqId || e.patrimony === eqId));
+        });
+      }
+      if (Array.isArray(loan.equipmentDetails)) {
+        loan.equipmentDetails.forEach(ed => {
+          freeEquip(equipList.find(e => e.id === ed.id || e.patrimony === ed.patrimony || (ed.serialNumber && e.serialNumber === ed.serialNumber)));
+        });
+      }
+      equipList.forEach(e => {
+        if (e.currentLoanId === id) {
+          freeEquip(e);
         }
       });
-      this.saveEquipmentList(equipList);
+      if (affectedEquips.length > 0) {
+        this.saveEquipmentList(equipList);
+        affectedEquips.forEach(eq => this.saveEquipmentToFirestore(eq));
+      }
     }
 
     list = list.filter(l => l.id !== id);
     this.saveLoanList(list);
+
     if (this.isFirestoreReady() && id) {
       fbDb.collection('emprestimos').doc(id).delete().catch(err => {
-        console.warn('Erro ao excluir empréstimo no Firestore:', err);
+        console.warn('Erro ao excluir emprestimo no Firestore:', err);
       });
     }
   },
@@ -540,30 +611,34 @@ window.StorageService = {
       ...loanData
     };
 
+    const affectedEquips = [];
+    const bindEquip = (eq) => {
+      if (!eq) return;
+      eq.status = 'emprestado';
+      eq.currentBorrower = newLoan.borrowerName;
+      eq.currentLoanId = newLoan.id;
+      if (!affectedEquips.includes(eq)) affectedEquips.push(eq);
+    };
+
     if (Array.isArray(newLoan.equipmentIds)) {
       newLoan.equipmentIds.forEach(eqId => {
-        const eq = equipList.find(e => e.id === eqId || e.patrimony === eqId);
-        if (eq) {
-          eq.status = 'emprestado';
-          eq.currentBorrower = newLoan.borrowerName;
-          eq.currentLoanId = newLoan.id;
-        }
+        bindEquip(equipList.find(e => e.id === eqId || e.patrimony === eqId));
       });
     }
     if (Array.isArray(newLoan.equipmentDetails)) {
       newLoan.equipmentDetails.forEach(ed => {
-        const eq = equipList.find(e => e.id === ed.id || e.patrimony === ed.patrimony || (ed.serialNumber && e.serialNumber === ed.serialNumber));
-        if (eq) {
-          eq.status = 'emprestado';
-          eq.currentBorrower = newLoan.borrowerName;
-          eq.currentLoanId = newLoan.id;
-        }
+        bindEquip(equipList.find(e => e.id === ed.id || e.patrimony === ed.patrimony || (ed.serialNumber && e.serialNumber === ed.serialNumber)));
       });
     }
 
     loans.unshift(newLoan);
     this.saveEquipmentList(equipList);
     this.saveLoanList(loans);
+
+    // Salva no Firestore
+    this.saveLoanToFirestore(newLoan);
+    affectedEquips.forEach(eq => this.saveEquipmentToFirestore(eq));
+
     return newLoan;
   },
 
@@ -585,29 +660,38 @@ window.StorageService = {
     loan.returnDate = returnDate || dStr;
     loan.returnNotes = returnNotes;
 
+    const affectedEquips = [];
+    const freeEquip = (eq) => {
+      if (!eq) return;
+      eq.status = 'disponivel';
+      delete eq.currentBorrower;
+      delete eq.currentLoanId;
+      if (!affectedEquips.includes(eq)) affectedEquips.push(eq);
+    };
+
     if (Array.isArray(loan.equipmentIds)) {
       loan.equipmentIds.forEach(eqId => {
-        const eq = equipList.find(e => e.id === eqId || e.patrimony === eqId);
-        if (eq) {
-          eq.status = 'disponivel';
-          delete eq.currentBorrower;
-          delete eq.currentLoanId;
-        }
+        freeEquip(equipList.find(e => e.id === eqId || e.patrimony === eqId));
       });
     }
     if (Array.isArray(loan.equipmentDetails)) {
       loan.equipmentDetails.forEach(ed => {
-        const eq = equipList.find(e => e.id === ed.id || e.patrimony === ed.patrimony || (ed.serialNumber && e.serialNumber === ed.serialNumber));
-        if (eq) {
-          eq.status = 'disponivel';
-          delete eq.currentBorrower;
-          delete eq.currentLoanId;
-        }
+        freeEquip(equipList.find(e => e.id === ed.id || e.patrimony === ed.patrimony || (ed.serialNumber && e.serialNumber === ed.serialNumber)));
       });
     }
+    equipList.forEach(e => {
+      if (e.currentLoanId === loan.id) {
+        freeEquip(e);
+      }
+    });
 
     this.saveEquipmentList(equipList);
     this.saveLoanList(loans);
+
+    // Salva a devolucao no Firestore em tempo real
+    this.saveLoanToFirestore(loan);
+    affectedEquips.forEach(eq => this.saveEquipmentToFirestore(eq));
+
     return loan;
   },
 
@@ -623,30 +707,37 @@ window.StorageService = {
 
     Object.assign(loan, updatedData);
 
+    const affectedEquips = [];
+
     if (loan.status !== 'devolvido') {
       const updateEq = (eq) => {
-        if (eq) {
-          eq.status = 'emprestado';
-          eq.currentBorrower = newName;
-          eq.currentLoanId = loan.id;
-        }
+        if (!eq) return;
+        eq.status = 'emprestado';
+        eq.currentBorrower = newName;
+        eq.currentLoanId = loan.id;
+        if (!affectedEquips.includes(eq)) affectedEquips.push(eq);
       };
       if (Array.isArray(loan.equipmentIds)) {
         loan.equipmentIds.forEach(eqId => {
-          const eq = equipList.find(e => e.id === eqId || e.patrimony === eqId);
-          updateEq(eq);
+          updateEq(equipList.find(e => e.id === eqId || e.patrimony === eqId));
         });
       }
       if (Array.isArray(loan.equipmentDetails)) {
         loan.equipmentDetails.forEach(ed => {
-          const eq = equipList.find(e => e.id === ed.id || e.patrimony === ed.patrimony || (ed.serialNumber && e.serialNumber === ed.serialNumber));
-          updateEq(eq);
+          updateEq(equipList.find(e => e.id === ed.id || e.patrimony === ed.patrimony || (ed.serialNumber && e.serialNumber === ed.serialNumber)));
         });
       }
+      equipList.forEach(e => {
+        if (e.currentLoanId === loan.id) {
+          updateEq(e);
+        }
+      });
       this.saveEquipmentList(equipList);
+      affectedEquips.forEach(eq => this.saveEquipmentToFirestore(eq));
     }
 
     this.saveLoanList(loans);
+    this.saveLoanToFirestore(loan);
     return loan;
   },
 
