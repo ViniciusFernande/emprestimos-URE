@@ -1630,8 +1630,7 @@ async logout() {
     }
   },
 
-  // Modal Devolução de Equipamento
-  // Modal DevoluÃ§Ã£o de Equipamento
+  // Modal Devolucao de Equipamento
   openReturnModal(loanId) {
     let loan = StorageService.getLoanById(loanId) || StorageService.getActiveLoanForEquipment(loanId);
     if (!loan) {
@@ -1641,7 +1640,7 @@ async logout() {
       }
     }
     if (!loan) {
-      alert('NÃ£o foi possÃ­vel localizar o emprÃ©stimo para este equipamento.');
+      alert("N\u00e3o foi poss\u00edvel localizar o empr\u00e9stimo para este equipamento.");
       return;
     }
 
@@ -1656,9 +1655,9 @@ async logout() {
 
     let itemsStr = '';
     if (loan.equipmentDetails && loan.equipmentDetails.length > 0) {
-      itemsStr = loan.equipmentDetails.map(e => `â€¢ ${e.patrimony || '-'} - ${e.model || '-'} (SÃ©rie: ${e.serialNumber || '-'})`).join('<br>');
+      itemsStr = loan.equipmentDetails.map(e => `\u2022 ${e.patrimony || '-'} - ${e.model || '-'} (S\u00e9rie: ${e.serialNumber || '-'})`).join('<br>');
     } else {
-      itemsStr = `â€¢ EmprÃ©stimo ID: ${loan.id}`;
+      itemsStr = `\u2022 Empr\u00e9stimo ID: ${loan.id}`;
     }
     const itemsEl = document.getElementById('returnItemsDisplay');
     if (itemsEl) itemsEl.innerHTML = itemsStr;
@@ -1669,7 +1668,7 @@ async logout() {
     if (retDateEl) retDateEl.value = dStr;
 
     const retNotesEl = document.getElementById('returnNotesInput');
-    if (retNotesEl) retNotesEl.value = 'Equipamento conferido e devolvido ao estoque em boas condiÃ§Ãµes.';
+    if (retNotesEl) retNotesEl.value = "Equipamento conferido e devolvido ao estoque em boas condi\u00e7\u00f5es.";
 
     this.syncDatePickerFromText('returnDateInput', 'picker-returnDateInput');
     this.openModal('modalReturnConfirm');
@@ -1686,7 +1685,7 @@ async logout() {
       const returnNotes = document.getElementById('returnNotesInput')?.value;
 
       if (!loanId) {
-        alert('Identificador do emprÃ©stimo nÃ£o encontrado.');
+        alert("Identificador do empr\u00e9stimo n\u00e3o encontrado.");
         return;
       }
 
@@ -1694,13 +1693,13 @@ async logout() {
       this.closeModal('modalReturnConfirm');
       this.refreshAll();
 
-      const msg = 'DevoluÃ§Ã£o confirmada com sucesso! Equipamento liberado para o estoque.';
+      const msg = "Devolu\u00e7\u00e3o confirmada com sucesso! Equipamento liberado para o estoque.";
       this.showToast(msg, 'success');
       alert(msg);
     } catch (err) {
-      console.error('Erro ao confirmar devoluÃ§Ã£o:', err);
-      alert('Erro ao confirmar devoluÃ§Ã£o: ' + (err.message || err));
-      this.showToast('Erro ao confirmar devoluÃ§Ã£o: ' + (err.message || err), 'error');
+      console.error('Erro ao confirmar devolu\u00e7\u00e3o:', err);
+      alert("Erro ao confirmar devolu\u00e7\u00e3o: " + (err.message || err));
+      this.showToast("Erro ao confirmar devolu\u00e7\u00e3o: " + (err.message || err), 'error');
     }
   },
   // Modal Cadastro e Edição de Equipamento

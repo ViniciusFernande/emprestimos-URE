@@ -180,6 +180,36 @@ window.StorageService = {
     }
   },
 
+  saveEquipmentToFirestore(item) {
+    if (!this.isFirestoreReady() || !item || !item.id) return;
+    try {
+      const data = Object.assign({}, item);
+      Object.keys(data).forEach(key => {
+        if (data[key] === undefined) delete data[key];
+      });
+      fbDb.collection('equipamentos').doc(String(item.id)).set(data, { merge: true }).catch(err => {
+        console.warn('Erro ao salvar equipamento no Firestore:', err);
+      });
+    } catch (e) {
+      console.warn('Erro ao salvar equipamento no Firestore:', e);
+    }
+  },
+
+  saveLoanToFirestore(loan) {
+    if (!this.isFirestoreReady() || !loan || !loan.id) return;
+    try {
+      const data = Object.assign({}, loan);
+      Object.keys(data).forEach(key => {
+        if (data[key] === undefined) delete data[key];
+      });
+      fbDb.collection('emprestimos').doc(String(loan.id)).set(data, { merge: true }).catch(err => {
+        console.warn('Erro ao salvar emprestimo no Firestore:', err);
+      });
+    } catch (e) {
+      console.warn('Erro ao salvar emprestimo no Firestore:', e);
+    }
+  },
+
   getEquipmentList() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.EQUIPMENT);
